@@ -10,13 +10,13 @@ Direct protein quantification is limited by cost and coverage of mass spectromet
 
 ## Key Capabilities
 
-*Translation-aware graph learning* that unifies transcriptomics, translationomics (Ribo-seq), and proteomics.
+**Translation-aware graph learning** that unifies transcriptomics, translationomics (Ribo-seq), and proteomics.
 
-*Generalization to undetected proteins* via GraphSAGE message passing on PPI graphs.
+**Generalization to undetected proteins** via GraphSAGE message passing on PPI graphs.
 
-*Bulk ↔ single-cell* transfer with pseudo-bulk adaptation + cell–cell GNN for single-cell prediction.
+**Bulk ↔ single-cell** transfer with pseudo-bulk adaptation + cell–cell GNN for single-cell prediction.
 
-*PPI refinement* detect spurious/missing edges; produce dataset-specific interactomes.
+**PPI refinement** detect spurious/missing edges; produce dataset-specific interactomes.
 
 ## Installation
 ### Conda (recommended for PyTorch/CUDA)
