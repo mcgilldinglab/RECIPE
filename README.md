@@ -65,5 +65,5 @@ networkx (PPI IO/ops)
 
 ## Contact
 
-Luying Su (luying.su@mail.mcgill.ca), Bowen Zhao (bowen.zhao@mail.mcgill.ca), Jun Ding (jun.ding@mcgill.ca) 
+Luying Su (luying.su@mail.mcgill.ca), Bowen Zhao (bowen.zhao@mail.mcgill.ca), Wei Song (songwei@ibms.pumc.edu.cn), Jun Ding (jun.ding@mcgill.ca) 
 Affiliations: Meakins-Christie Laboratories, RI-MUHC, McGill University
