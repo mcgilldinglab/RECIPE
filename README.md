@@ -8,15 +8,22 @@ Direct protein quantification is limited by cost and coverage of mass spectromet
 ![Workflow](riboseq_WORKFLOW.png)
 
 
-## Key Capabilities
+### Principal Contributions
 
-**Translation-aware graph learning** that unifies transcriptomics, translationomics (Ribo-seq), and proteomics.
+1. **Translation-aware graph learning.**  
+   A unified GraphSAGE framework links transcriptomics, translationomics (Ribo-seq occupancy & pausing), and proteomics using DNABERT sequence embeddings and PPI topology, explicitly modeling information flow from mRNA translation to protein abundance.
 
-**Generalization to undetected proteins** via GraphSAGE message passing on PPI graphs.
+2. **Generalizes beyond detected proteins.**  
+   Graph message passing over PPI propagates translation/expression signals to neighbors, enabling accurate prediction of low-abundance or undetected proteins (e.g., Pearson R ≈ 0.96) and improving proteome coverage for downstream analyses.
 
-**Bulk ↔ single-cell** transfer with pseudo-bulk adaptation + cell–cell GNN for single-cell prediction.
+3. **Bulk ↔ single-cell applicability.**  
+   Two-phase strategy—pseudo-bulk adaptation then cell–cell GNN—yields translation-informed single-cell protein estimation, providing a scalable alternative where single-cell proteomics is sparse.
 
-**PPI refinement** detect spurious/missing edges; produce dataset-specific interactomes.
+4. **Interactome refinement.**  
+   A PPI inference module removes spurious edges and adds missing ones, producing dataset-specific networks with stronger co-expression and pathway coherence (GO/KEGG/Reactome).
+
+5. **Mechanistic insight into translation–protein decoupling.**  
+   Systematic comparison of predicted vs. measured proteins reveals modules (e.g., cytoskeletal, ribosomal, nucleoproteins) where stability/stoichiometry/chromatin binding decouple abundance from ribosome occupancy.
 
 ## Installation
 ### Conda (recommended for PyTorch/CUDA)
