@@ -63,6 +63,34 @@ networkx (PPI IO/ops)
 (Optional) scanpy/anndata for single-cell workflows
 
 
+## Usage
+
+** 1. Obtain the following data files:**
+
+RNA-seq gene expression count data for wildtype (healthy) and disease samples (required to run DESeq2)
+Receptors specific to your disease condition (required to run DENetwork)
+The data should be formatted as shown in the Example section.
+
+** 2. Run RECIPE:**
+
+```bash
+python RECIPE.py \
+  --seed 8 \
+  --epochs 3000 \
+  --patience 200 \
+  --lr 0.07 \
+  --device cuda:2 \
+  --train-ratio 0.75 --val-ratio 0.1667 --test-ratio 0.0833 \
+  --x-col rNC2 --y-col NC3 \
+  --norm cpm_log2p1 \
+  --seq-npy ./data/all_sequence_outputs7132.npy \
+  --ppi-csv ./data/ppi_ebi_string_ppi3ensp_lr_IntAct_corummatrix4p_p.csv \
+  --meta-csv ./data/24077132kdncmergedf.csv \
+  --pause-col High_Pause_Countsnc \
+  --add-self-loops \
+  --save-path ./model/Extend_undetected_protein.pth
+```
+
 ## Contact
 
 Luying Su (luying.su@mail.mcgill.ca), Bowen Zhao (bowen.zhao@mail.mcgill.ca), Wei Song (songwei@ibms.pumc.edu.cn), Jun Ding (jun.ding@mcgill.ca) 
