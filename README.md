@@ -65,7 +65,7 @@ networkx (PPI IO/ops)
 
 ## Usage
 
-** Run RECIPE:**
+**Run RECIPE:**
 
 ```bash
 python RECIPE.py \
