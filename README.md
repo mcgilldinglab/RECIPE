@@ -65,13 +65,7 @@ networkx (PPI IO/ops)
 
 ## Usage
 
-** 1. Obtain the following data files:**
-
-RNA-seq gene expression count data for wildtype (healthy) and disease samples (required to run DESeq2)
-Receptors specific to your disease condition (required to run DENetwork)
-The data should be formatted as shown in the Example section.
-
-** 2. Run RECIPE:**
+** Run RECIPE:**
 
 ```bash
 python RECIPE.py \
