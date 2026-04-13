@@ -14,6 +14,10 @@ PHASE0_SCRIPT = PROJECT_ROOT / "train_phase0_ensmusp_pseudobulk_raw_bulkprot.py"
 PHASE12_SCRIPT = PROJECT_ROOT / "train_phase12_ensmusp_scRNA_bulkprot.py"
 PHASE3_SCRIPT = PROJECT_ROOT / "train_phase3_ensmusp_nanospins_matched.py"
 
+BULK_MODULE_STEP = "Bulk Module"
+RNASEQ_PSEUDOBULK_FINETUNING_STEP = "Phase 1: RNA-seq Pseudo-Bulk Finetuning"
+SINGLE_CELL_PROTEIN_FINETUNING_STEP = "Phase 2: Single-Cell Protein Finetuning"
+
 
 def _load_script_module(script_path: Path) -> ModuleType:
     spec = importlib.util.spec_from_file_location(f"recipe_wrapped_{script_path.stem}", script_path)
@@ -58,52 +62,91 @@ def run_phase3(script_args: Sequence[str] | None = None) -> None:
 
 
 def run_phase023(
+    bulk_module_args: Sequence[str] | None = None,
+    phase1_rnaseq_pseudo_bulk_finetuning_args: Sequence[str] | None = None,
+    phase2_single_cell_protein_finetuning_args: Sequence[str] | None = None,
+    *,
     phase0_args: Sequence[str] | None = None,
     phase12_args: Sequence[str] | None = None,
     phase3_args: Sequence[str] | None = None,
 ) -> None:
-    run_phase0(phase0_args)
-    run_phase12(phase12_args)
-    run_phase3(phase3_args)
+    run_phase0(bulk_module_args if bulk_module_args is not None else phase0_args)
+    run_phase12(
+        phase1_rnaseq_pseudo_bulk_finetuning_args
+        if phase1_rnaseq_pseudo_bulk_finetuning_args is not None
+        else phase12_args
+    )
+    run_phase3(
+        phase2_single_cell_protein_finetuning_args
+        if phase2_single_cell_protein_finetuning_args is not None
+        else phase3_args
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Unified RNA-seq single-cell workflow wrapper for the current ENSMUSP pipeline. "
-            "This workflow keeps the training logic in the original phase0/phase12/phase3 "
+            "This workflow keeps the training logic in the original bulk module / "
+            "RNA-seq pseudo-bulk finetuning / single-cell protein finetuning "
             "scripts and centralizes entry points under RECIPE."
         )
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    phase0_parser = subparsers.add_parser("phase0", help="Run bulk/pseudobulk phase0 training.")
-    phase0_parser.add_argument("script_args", nargs=argparse.REMAINDER, help="Args forwarded to phase0.")
+    phase0_parser = subparsers.add_parser("phase0", help=f"Run {BULK_MODULE_STEP}.")
+    phase0_parser.add_argument("script_args", nargs=argparse.REMAINDER, help=f"Args forwarded to {BULK_MODULE_STEP}.")
 
-    phase12_parser = subparsers.add_parser("phase12", help="Run phase1 export + phase2 training.")
-    phase12_parser.add_argument("script_args", nargs=argparse.REMAINDER, help="Args forwarded to phase12.")
+    phase12_parser = subparsers.add_parser("phase12", help=f"Run {RNASEQ_PSEUDOBULK_FINETUNING_STEP}.")
+    phase12_parser.add_argument(
+        "script_args",
+        nargs=argparse.REMAINDER,
+        help=f"Args forwarded to {RNASEQ_PSEUDOBULK_FINETUNING_STEP}.",
+    )
 
-    phase3_parser = subparsers.add_parser("phase3", help="Run matched nanoSPINS phase3 training.")
-    phase3_parser.add_argument("script_args", nargs=argparse.REMAINDER, help="Args forwarded to phase3.")
+    phase3_parser = subparsers.add_parser("phase3", help=f"Run {SINGLE_CELL_PROTEIN_FINETUNING_STEP}.")
+    phase3_parser.add_argument(
+        "script_args",
+        nargs=argparse.REMAINDER,
+        help=f"Args forwarded to {SINGLE_CELL_PROTEIN_FINETUNING_STEP}.",
+    )
 
     phase023_parser = subparsers.add_parser(
         "phase023",
-        help="Run phase0, phase12, and phase3 sequentially.",
+        help=(
+            f"Run {BULK_MODULE_STEP}, {RNASEQ_PSEUDOBULK_FINETUNING_STEP}, "
+            f"and {SINGLE_CELL_PROTEIN_FINETUNING_STEP} sequentially."
+        ),
+    )
+    phase023_parser.add_argument(
+        "--bulk-module-args",
+        default="",
+        help=f"Shell-style argument string forwarded to {BULK_MODULE_STEP}.",
+    )
+    phase023_parser.add_argument(
+        "--phase1-rnaseq-pseudo-bulk-finetuning-args",
+        default="",
+        help=f"Shell-style argument string forwarded to {RNASEQ_PSEUDOBULK_FINETUNING_STEP}.",
+    )
+    phase023_parser.add_argument(
+        "--phase2-single-cell-protein-finetuning-args",
+        default="",
+        help=f"Shell-style argument string forwarded to {SINGLE_CELL_PROTEIN_FINETUNING_STEP}.",
     )
     phase023_parser.add_argument(
         "--phase0-args",
         default="",
-        help="Shell-style argument string forwarded to phase0.",
+        help=f"Deprecated alias for --bulk-module-args.",
     )
     phase023_parser.add_argument(
         "--phase12-args",
         default="",
-        help="Shell-style argument string forwarded to phase12.",
+        help=f"Deprecated alias for --phase1-rnaseq-pseudo-bulk-finetuning-args.",
     )
     phase023_parser.add_argument(
         "--phase3-args",
         default="",
-        help="Shell-style argument string forwarded to phase3.",
+        help=f"Deprecated alias for --phase2-single-cell-protein-finetuning-args.",
     )
     return parser
 
@@ -122,10 +165,23 @@ def main(argv: Sequence[str] | None = None) -> None:
         run_phase3(args.script_args)
         return
     if args.command == "phase023":
+        bulk_module_args = (
+            args.bulk_module_args if args.bulk_module_args else args.phase0_args
+        )
+        phase1_args = (
+            args.phase1_rnaseq_pseudo_bulk_finetuning_args
+            if args.phase1_rnaseq_pseudo_bulk_finetuning_args
+            else args.phase12_args
+        )
+        phase2_args = (
+            args.phase2_single_cell_protein_finetuning_args
+            if args.phase2_single_cell_protein_finetuning_args
+            else args.phase3_args
+        )
         run_phase023(
-            phase0_args=shlex.split(args.phase0_args),
-            phase12_args=shlex.split(args.phase12_args),
-            phase3_args=shlex.split(args.phase3_args),
+            bulk_module_args=shlex.split(bulk_module_args),
+            phase1_rnaseq_pseudo_bulk_finetuning_args=shlex.split(phase1_args),
+            phase2_single_cell_protein_finetuning_args=shlex.split(phase2_args),
         )
         return
     raise ValueError(f"Unsupported command: {args.command}")
