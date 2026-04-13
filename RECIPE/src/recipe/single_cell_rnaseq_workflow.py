@@ -61,7 +61,7 @@ def run_phase3(script_args: Sequence[str] | None = None) -> None:
     _run_script_main(PHASE3_SCRIPT, script_args)
 
 
-def run_phase023(
+def run_scrnaseq_workflow(
     bulk_module_args: Sequence[str] | None = None,
     phase1_rnaseq_pseudo_bulk_finetuning_args: Sequence[str] | None = None,
     phase2_single_cell_protein_finetuning_args: Sequence[str] | None = None,
@@ -80,6 +80,25 @@ def run_phase023(
         phase2_single_cell_protein_finetuning_args
         if phase2_single_cell_protein_finetuning_args is not None
         else phase3_args
+    )
+
+
+def run_phase023(
+    bulk_module_args: Sequence[str] | None = None,
+    phase1_rnaseq_pseudo_bulk_finetuning_args: Sequence[str] | None = None,
+    phase2_single_cell_protein_finetuning_args: Sequence[str] | None = None,
+    *,
+    phase0_args: Sequence[str] | None = None,
+    phase12_args: Sequence[str] | None = None,
+    phase3_args: Sequence[str] | None = None,
+) -> None:
+    run_scrnaseq_workflow(
+        bulk_module_args=bulk_module_args,
+        phase1_rnaseq_pseudo_bulk_finetuning_args=phase1_rnaseq_pseudo_bulk_finetuning_args,
+        phase2_single_cell_protein_finetuning_args=phase2_single_cell_protein_finetuning_args,
+        phase0_args=phase0_args,
+        phase12_args=phase12_args,
+        phase3_args=phase3_args,
     )
 
 
@@ -112,7 +131,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     phase023_parser = subparsers.add_parser(
-        "phase023",
+        "scrnaseq_workflow",
+        aliases=["phase023"],
         help=(
             f"Run {BULK_MODULE_STEP}, {RNASEQ_PSEUDOBULK_FINETUNING_STEP}, "
             f"and {SINGLE_CELL_PROTEIN_FINETUNING_STEP} sequentially."
@@ -164,7 +184,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     if args.command == "phase3":
         run_phase3(args.script_args)
         return
-    if args.command == "phase023":
+    if args.command in {"scrnaseq_workflow", "phase023"}:
         bulk_module_args = (
             args.bulk_module_args if args.bulk_module_args else args.phase0_args
         )
@@ -178,7 +198,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             if args.phase2_single_cell_protein_finetuning_args
             else args.phase3_args
         )
-        run_phase023(
+        run_scrnaseq_workflow(
             bulk_module_args=shlex.split(bulk_module_args),
             phase1_rnaseq_pseudo_bulk_finetuning_args=shlex.split(phase1_args),
             phase2_single_cell_protein_finetuning_args=shlex.split(phase2_args),
