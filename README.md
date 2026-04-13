@@ -122,7 +122,7 @@ summary = run_ppi_refinement(
 print(summary)
 ```
 
-## Module D: legacy single-cell riboseq workflow
+## Module D -1: single-cell riboseq workflow
 ```python
 from recipe.single_cell_riboseq_workflow import run_single_cell_transfer
 
@@ -138,51 +138,7 @@ summary = run_single_cell_transfer(
 print(summary)
 ```
 
-## Current RNA-seq workflow: phase0
-```python
-from recipe.single_cell_rnaseq_workflow import run_phase0
-
-run_phase0([
-    "--bundle-dir", "/path/to/bundle",
-    "--output-dir", "/tmp/rnaseq_phase0",
-    "--seed", "8",
-    "--device", "cuda:0",
-    "--condition", "C10",
-])
-```
-
-## Current RNA-seq workflow: phase12
-```python
-from recipe.single_cell_rnaseq_workflow import run_phase12
-
-run_phase12([
-    "--bundle-dir", "/path/to/bundle",
-    "--phase0-summary", "/path/to/phase0/summary.json",
-    "--phase0-model", "/path/to/phase0/best_model.pth",
-    "--output-root", "/tmp/rnaseq_phase12",
-    "--seed", "8",
-    "--device", "cuda:0",
-    "--condition", "C10",
-])
-```
-
-## Current RNA-seq workflow: phase3
-```python
-from recipe.single_cell_rnaseq_workflow import run_phase3
-
-run_phase3([
-    "--bundle-dir", "/path/to/bundle",
-    "--hidden-cache-root", "/path/to/phase2_hidden_cache",
-    "--truth-csv", "/path/to/protein_input_impute_by_ENSMUSP_full_order_with_NA.csv",
-    "--mapping-xlsx", "/path/to/d5lc01008j2.xlsx",
-    "--output-root", "/tmp/rnaseq_phase3",
-    "--seed", "8",
-    "--device", "cuda:0",
-    "--condition", "C10",
-])
-```
-
-## Current RNA-seq workflow: phase023
+## Module D -2: RNA-seq workflow:
 ```python
 from recipe.single_cell_rnaseq_workflow import run_phase023
 
