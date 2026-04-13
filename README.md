@@ -72,7 +72,7 @@ networkx (PPI IO/ops)
 ## Run RECIPE
 ```python
 import sys
-sys.path.append("/mnt/md0/luying/ribo/dnabert/DNABERT/examples/my_project/RECIPE/src")
+sys.path.append("/path/to/RECIPE/src")
 ```
 
 ## Module A: bulk unknown
