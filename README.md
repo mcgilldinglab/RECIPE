@@ -67,26 +67,169 @@ networkx (PPI IO/ops)
 
 ## Usage
 
-**Run RECIPE:**
+# RECIPE Usage
 
-```bash
-python RECIPE.py \
-  --seed 8 \
-  --epochs 3000 \
-  --patience 200 \
-  --lr 0.07 \
-  --device cuda:2 \
-  --train-ratio 0.75 --val-ratio 0.1667 --test-ratio 0.0833 \
-  --x-col rNC2 --y-col NC3 \
-  --norm cpm_log2p1 \
-  --seq-npy ./data/all_sequence_outputs7132.npy \
-  --ppi-csv ./data/ppi_ebi_string_ppi3ensp_lr_IntAct_corummatrix4p_p.csv \
-  --meta-csv ./data/24077132kdncmergedf.csv \
-  --pause-col High_Pause_Countsnc \
-  --add-self-loops \
-  --save-path ./model/Extend_undetected_protein.pth
+## Run RECIPE
+```python
+import sys
+sys.path.append("/mnt/md0/luying/ribo/dnabert/DNABERT/examples/my_project/RECIPE/src")
 ```
 
+## Module A: bulk unknown
+```python
+from recipe.bulk_workflow import run_bulk_module
+
+summary = run_bulk_module(
+    species="human",
+    task="unknown",
+    condition_name="KD",
+    output_dir="/tmp/recipe_module_a",
+    seed=12,
+    device_name="cuda:0",
+    train=True,
+)
+print(summary)
+```
+
+## Module B: bulk known
+```python
+from recipe.bulk_workflow import run_bulk_module
+
+summary = run_bulk_module(
+    species="human",
+    task="known",
+    condition_name="KD",
+    output_dir="/tmp/recipe_module_b",
+    seed=12,
+    device_name="cuda:0",
+    train=True,
+)
+print(summary)
+```
+
+## Module C: PPI refinement
+```python
+from recipe.ppi_workflow import run_ppi_refinement
+
+summary = run_ppi_refinement(
+    species="human",
+    condition_name="KD",
+    output_dir="/tmp/recipe_module_c",
+    seed=12,
+    device_name="cuda:0",
+    bulk_checkpoint_path="/path/to/bulk_checkpoint.pth",
+)
+print(summary)
+```
+
+## Module D: legacy single-cell riboseq workflow
+```python
+from recipe.single_cell_riboseq_workflow import run_single_cell_transfer
+
+summary = run_single_cell_transfer(
+    output_dir="/tmp/recipe_module_d",
+    steps=("phase0", "phase1", "phase2"),
+    seed=12,
+    device_name="cuda:0",
+    train_phase0=True,
+    train_phase1=True,
+    train_phase2=True,
+)
+print(summary)
+```
+
+## Current RNA-seq workflow: phase0
+```python
+from recipe.single_cell_rnaseq_workflow import run_phase0
+
+run_phase0([
+    "--bundle-dir", "/path/to/bundle",
+    "--output-dir", "/tmp/rnaseq_phase0",
+    "--seed", "8",
+    "--device", "cuda:0",
+    "--condition", "C10",
+])
+```
+
+## Current RNA-seq workflow: phase12
+```python
+from recipe.single_cell_rnaseq_workflow import run_phase12
+
+run_phase12([
+    "--bundle-dir", "/path/to/bundle",
+    "--phase0-summary", "/path/to/phase0/summary.json",
+    "--phase0-model", "/path/to/phase0/best_model.pth",
+    "--output-root", "/tmp/rnaseq_phase12",
+    "--seed", "8",
+    "--device", "cuda:0",
+    "--condition", "C10",
+])
+```
+
+## Current RNA-seq workflow: phase3
+```python
+from recipe.single_cell_rnaseq_workflow import run_phase3
+
+run_phase3([
+    "--bundle-dir", "/path/to/bundle",
+    "--hidden-cache-root", "/path/to/phase2_hidden_cache",
+    "--truth-csv", "/path/to/protein_input_impute_by_ENSMUSP_full_order_with_NA.csv",
+    "--mapping-xlsx", "/path/to/d5lc01008j2.xlsx",
+    "--output-root", "/tmp/rnaseq_phase3",
+    "--seed", "8",
+    "--device", "cuda:0",
+    "--condition", "C10",
+])
+```
+
+## Current RNA-seq workflow: phase023
+```python
+from recipe.single_cell_rnaseq_workflow import run_phase023
+
+run_phase023(
+    phase0_args=[
+        "--bundle-dir", "/path/to/bundle",
+        "--output-dir", "/tmp/rnaseq_phase0",
+        "--seed", "8",
+        "--device", "cuda:0",
+        "--condition", "C10",
+    ],
+    phase12_args=[
+        "--bundle-dir", "/path/to/bundle",
+        "--phase0-summary", "/tmp/rnaseq_phase0/summary.json",
+        "--phase0-model", "/tmp/rnaseq_phase0/best_model.pth",
+        "--output-root", "/tmp/rnaseq_phase12",
+        "--seed", "8",
+        "--device", "cuda:0",
+        "--condition", "C10",
+    ],
+    phase3_args=[
+        "--bundle-dir", "/path/to/bundle",
+        "--hidden-cache-root", "/tmp/rnaseq_phase12/phase2_hidden_cache",
+        "--truth-csv", "/path/to/protein_truth.csv",
+        "--mapping-xlsx", "/path/to/d5lc01008j2.xlsx",
+        "--output-root", "/tmp/rnaseq_phase3",
+        "--seed", "8",
+        "--device", "cuda:0",
+        "--condition", "C10",
+    ],
+)
+```
+
+## Top-level pipeline
+```python
+from recipe.pipeline import run_recipe_pipeline
+
+summary = run_recipe_pipeline(
+    modules=("A", "B", "C", "D"),
+    output_root="/tmp/recipe_pipeline",
+    species="human",
+    condition="KD",
+    seed=12,
+    device_name="cuda:0",
+)
+print(summary)
+```
 ## Contact
 
 Luying Su (luying.su@mail.mcgill.ca), Bowen Zhao (bowen.zhao@mail.mcgill.ca), Wei Song (songwei@ibms.pumc.edu.cn), Jun Ding (jun.ding@mcgill.ca) 
