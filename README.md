@@ -42,8 +42,7 @@ pip install -e .
 
 See full list in **[requirements.txt](./requirements.txt)**.
 
-Tip: PyTorch Geometric & friends must match your torch/CUDA versions. Follow https://pytorch-geometric.readthedocs.io
- for wheels.
+Note: Ensure that PyTorch Geometric and its dependencies are installed with versions compatible with your PyTorch and CUDA setup. For the correct wheel files, please consult the official PyTorch Geometric documentation.
 
 
 ## Prerequisites
@@ -75,23 +74,7 @@ import sys
 sys.path.append("/path/to/RECIPE/src")
 ```
 
-## Module A: bulk unknown
-```python
-from recipe.bulk_workflow import run_bulk_module
-
-summary = run_bulk_module(
-    species="human",
-    task="unknown",
-    condition_name="KD",
-    output_dir="/tmp/recipe_module_a",
-    seed=12,
-    device_name="cuda:0",
-    train=True,
-)
-print(summary)
-```
-
-## Module B: bulk known
+## Module A: bulk known
 ```python
 from recipe.bulk_workflow import run_bulk_module
 
@@ -100,6 +83,22 @@ summary = run_bulk_module(
     task="known",
     condition_name="KD",
     output_dir="/tmp/recipe_module_b",
+    seed=12,
+    device_name="cuda:0",
+    train=True,
+)
+print(summary)
+```
+
+## Module B: bulk unknown
+```python
+from recipe.bulk_workflow import run_bulk_module
+
+summary = run_bulk_module(
+    species="human",
+    task="unknown",
+    condition_name="KD",
+    output_dir="/tmp/recipe_module_a",
     seed=12,
     device_name="cuda:0",
     train=True,
