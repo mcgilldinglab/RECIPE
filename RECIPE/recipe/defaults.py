@@ -1,0 +1,31 @@
+"""Backward-compatible accessors for packaged RECIPE defaults."""
+
+from .assets import (
+    BULK_DATA_DIR,
+    BULK_MODEL_DIR,
+    DATA_ROOT,
+    MODEL_ROOT,
+    NETWORK_DATA_DIR,
+    OUTPUT_ROOT,
+    PAUSING_DATA_DIR,
+    REPO_ROOT,
+    SINGLE_CELL_DATA_DIR,
+    SINGLE_CELL_MODEL_DIR,
+)
+from .config import BULK_KNOWN_CONFIGS, BULK_UNKNOWN_CONFIGS, SINGLE_CELL_TRANSFER_CONFIG
+
+__all__ = [
+    "REPO_ROOT",
+    "DATA_ROOT",
+    "MODEL_ROOT",
+    "OUTPUT_ROOT",
+    "BULK_DATA_DIR",
+    "NETWORK_DATA_DIR",
+    "PAUSING_DATA_DIR",
+    "SINGLE_CELL_DATA_DIR",
+    "BULK_MODEL_DIR",
+    "SINGLE_CELL_MODEL_DIR",
+    "BULK_KNOWN_CONFIGS",
+    "BULK_UNKNOWN_CONFIGS",
+    "SINGLE_CELL_TRANSFER_CONFIG",
+]
