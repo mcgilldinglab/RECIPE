@@ -216,7 +216,7 @@ run_phase023(
 )
 ```
 
-## Top-level pipeline
+## Pipeline for RECIPE modules
 ```python
 from recipe.pipeline import run_recipe_pipeline
 
