@@ -127,7 +127,11 @@ from recipe.single_cell_riboseq_workflow import run_single_cell_transfer
 
 summary = run_single_cell_transfer(
     output_dir="/tmp/recipe_module_d",
-    steps=("phase0", "phase1", "phase2"),
+    steps=(
+        "Bulk Module",
+        "Phase 1: Pseudo-Bulk Module Finetuning",
+        "Phase 2: Single-Cell Finetuning",
+    ),
     seed=12,
     device_name="cuda:0",
     train_phase0=True,
@@ -139,17 +143,17 @@ print(summary)
 
 ## Module D -2: RNA-seq workflow:
 ```python
-from recipe.single_cell_rnaseq_workflow import run_phase023
+from recipe.single_cell_rnaseq_workflow import run_scrnaseq_workflow
 
-run_phase023(
-    phase0_args=[
+run_scrnaseq_workflow(
+    bulk_module_args=[
         "--bundle-dir", "/path/to/bundle",
         "--output-dir", "/tmp/rnaseq_phase0",
         "--seed", "8",
         "--device", "cuda:0",
         "--condition", "C10",
     ],
-    phase12_args=[
+    phase1_rnaseq_pseudo_bulk_finetuning_args=[
         "--bundle-dir", "/path/to/bundle",
         "--phase0-summary", "/tmp/rnaseq_phase0/summary.json",
         "--phase0-model", "/tmp/rnaseq_phase0/best_model.pth",
@@ -158,7 +162,7 @@ run_phase023(
         "--device", "cuda:0",
         "--condition", "C10",
     ],
-    phase3_args=[
+    phase2_single_cell_protein_finetuning_args=[
         "--bundle-dir", "/path/to/bundle",
         "--hidden-cache-root", "/tmp/rnaseq_phase12/phase2_hidden_cache",
         "--truth-csv", "/path/to/protein_truth.csv",
@@ -169,6 +173,7 @@ run_phase023(
         "--condition", "C10",
     ],
 )
+
 ```
 
 ## Pipeline for RECIPE modules
