@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "recipe-pipeline"
+version = "0.1.0"
+description = "Packaged RECIPE workflow for bulk inference, PPI refinement, and single-cell transfer."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "matplotlib",
+  "networkx",
+  "numpy",
+  "openpyxl",
+  "pandas",
+  "scikit-learn",
+  "scipy",
+  "seaborn",
+  "torch",
+  "torch-geometric",
+  "typing_extensions",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -28,26 +28,38 @@ Direct protein quantification is limited by cost and coverage of mass spectromet
    Systematic comparison of predicted vs. measured proteins reveals modules (e.g., cytoskeletal, ribosomal, nucleoproteins) where stability/stoichiometry/chromatin binding decouple abundance from ribosome occupancy.
 
 ## Installation
-### Conda (recommended for PyTorch/CUDA)
+
+The pip-installable RECIPE package lives in the repository subdirectory `RECIPE/`.
+
+### Install from GitHub
+
 ```bash
-conda create -n recipe python=3.9 -y
-conda activate recipe
-# Install PyTorch/CUDA (match your GPU/driver)
-conda install pytorch pytorch-cuda=12.1 -c pytorch -c nvidia
-# Then install the rest via pip
-pip install -r requirements.txt
-# Dev install
-pip install -e .
+python -m pip install -U pip
+python -m pip install "git+https://github.com/mcgilldinglab/RECIPE.git@main#subdirectory=RECIPE"
 ```
 
-See full list in **[requirements.txt](./requirements.txt)**.
+### Editable install from a local clone
+
+```bash
+git clone https://github.com/mcgilldinglab/RECIPE.git
+cd RECIPE
+python -m pip install -U pip
+python -m pip install -r RECIPE/requirements.txt
+python -m pip install -e RECIPE
+```
+
+For package-specific details, see **[RECIPE/README.md](./RECIPE/README.md)**.
 
 Note: Ensure that PyTorch Geometric and its dependencies are installed with versions compatible with your PyTorch and CUDA setup. For the correct wheel files, please consult the official PyTorch Geometric documentation.
+
+## Documentation
+
+Read the Docs is configured from the repository root via **[.readthedocs.yaml](./.readthedocs.yaml)** and builds the docs stored in `RECIPE/docs/`.
 
 
 ## Prerequisites
 
-Python ≥ 3.9
+Python ≥ 3.10
 
 PyTorch ≥ 2.0
 
@@ -66,12 +78,10 @@ networkx (PPI IO/ops)
 
 ## Usage
 
-# RECIPE Usage
+Install the package first, then import `recipe` directly.
 
-## Run RECIPE
 ```python
-import sys
-sys.path.append("/path/to/RECIPE/src")
+import recipe
 ```
 
 ## Module A: bulk known
@@ -190,6 +200,19 @@ summary = run_recipe_pipeline(
 )
 print(summary)
 ```
+
+## Data
+
+The repository documents a split between lightweight packaged assets committed directly and large runtime assets tracked with Git LFS or kept external.
+
+The public repository now includes the smaller packaged PPI graphs needed for model training and inference:
+
+- `RECIPE/data/networks/human_ppi_known.csv`
+- `RECIPE/data/networks/mouse_ppi_known.csv`
+- `RECIPE/data/networks/mouse_ppi_unknown.csv`
+- `RECIPE/data/networks/single_cell_transfer_ppi.csv`
+
+The very large `human_ppi_unknown.csv` is intentionally excluded from GitHub and should be distributed separately.
 ## Contact
 
 Luying Su (luying.su@mail.mcgill.ca), Bowen Zhao (bowen.zhao@mail.mcgill.ca), Wei Song (songwei@ibms.pumc.edu.cn), Jun Ding (jun.ding@mcgill.ca) 

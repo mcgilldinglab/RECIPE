@@ -1,0 +1,11 @@
+matplotlib
+networkx
+numpy
+openpyxl
+pandas
+scikit-learn
+scipy
+seaborn
+torch
+torch-geometric
+typing_extensions

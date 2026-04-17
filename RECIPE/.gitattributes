@@ -1,0 +1,12 @@
+data/bulk/human_sequence_known.npy filter=lfs diff=lfs merge=lfs -text
+data/bulk/human_sequence_unknown.npy filter=lfs diff=lfs merge=lfs -text
+data/bulk/mouse_sequence_known.npy filter=lfs diff=lfs merge=lfs -text
+data/bulk/mouse_sequence_unknown.npy filter=lfs diff=lfs merge=lfs -text
+data/bulk/single_cell_transfer_sequence.npy filter=lfs diff=lfs merge=lfs -text
+data/networks/human_coexpression.csv filter=lfs diff=lfs merge=lfs -text
+data/networks/human_ppi_known.csv filter=lfs diff=lfs merge=lfs -text
+data/networks/mouse_coexpression.csv filter=lfs diff=lfs merge=lfs -text
+data/networks/mouse_ppi_known.csv filter=lfs diff=lfs merge=lfs -text
+data/networks/mouse_ppi_unknown.csv filter=lfs diff=lfs merge=lfs -text
+data/networks/single_cell_transfer_ppi.csv filter=lfs diff=lfs merge=lfs -text
+data/single_cell/cell_embeddings.npy filter=lfs diff=lfs merge=lfs -text

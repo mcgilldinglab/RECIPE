@@ -14,6 +14,184 @@ The files in this directory can be grouped into five categories:
 
 ---
 
+## Installation
+
+Install the packaged module before importing `recipe`:
+
+```bash
+python -m pip install "git+https://github.com/mcgilldinglab/RECIPE.git@main#subdirectory=RECIPE"
+```
+
+For local development:
+
+```bash
+cd /path/to/RECIPE
+python -m pip install -r requirements.txt
+python -m pip install -e .
+```
+
+## Usage
+
+After installation:
+
+**Module A: bulk unknown**
+```bash
+from recipe.bulk_workflow import run_bulk_module
+
+summary = run_bulk_module(
+    species="human",
+    task="unknown",
+    condition_name="KD",
+    output_dir="/tmp/recipe_module_a",
+    seed=12,
+    device_name="cuda:0",
+    train=True,
+)
+print(summary)
+```
+
+**Module B: bulk known**
+```bash
+from recipe.bulk_workflow import run_bulk_module
+
+summary = run_bulk_module(
+    species="human",
+    task="known",
+    condition_name="KD",
+    output_dir="/tmp/recipe_module_b",
+    seed=12,
+    device_name="cuda:0",
+    train=True,
+)
+print(summary)
+```
+
+**Module C: PPI refinement**
+```bash
+from recipe.ppi_workflow import run_ppi_refinement
+
+summary = run_ppi_refinement(
+    species="human",
+    condition_name="KD",
+    output_dir="/tmp/recipe_module_c",
+    seed=12,
+    device_name="cuda:0",
+    bulk_checkpoint_path="/path/to/bulk_checkpoint.pth",
+)
+print(summary)
+```
+
+**Module D: legacy single-cell riboseq workflow**
+```bash
+from recipe.single_cell_riboseq_workflow import run_single_cell_transfer
+
+summary = run_single_cell_transfer(
+    output_dir="/tmp/recipe_module_d",
+    steps=("phase0", "phase1", "phase2"),
+    seed=12,
+    device_name="cuda:0",
+    train_phase0=True,
+    train_phase1=True,
+    train_phase2=True,
+)
+print(summary)
+```
+
+**Current RNA-seq workflow: phase0**
+```bash
+from recipe.single_cell_rnaseq_workflow import run_phase0
+
+run_phase0([
+    "--bundle-dir", "/path/to/bundle",
+    "--output-dir", "/tmp/rnaseq_phase0",
+    "--seed", "8",
+    "--device", "cuda:0",
+    "--condition", "C10",
+])
+```
+
+**Current RNA-seq workflow: phase12**
+```bash
+from recipe.single_cell_rnaseq_workflow import run_phase12
+
+run_phase12([
+    "--bundle-dir", "/path/to/bundle",
+    "--phase0-summary", "/path/to/phase0/summary.json",
+    "--phase0-model", "/path/to/phase0/best_model.pth",
+    "--output-root", "/tmp/rnaseq_phase12",
+    "--seed", "8",
+    "--device", "cuda:0",
+    "--condition", "C10",
+])
+```
+
+**Current RNA-seq workflow: phase3**
+```bash
+from recipe.single_cell_rnaseq_workflow import run_phase3
+
+run_phase3([
+    "--bundle-dir", "/path/to/bundle",
+    "--hidden-cache-root", "/path/to/phase2_hidden_cache",
+    "--truth-csv", "/path/to/protein_input_impute_by_ENSMUSP_full_order_with_NA.csv",
+    "--mapping-xlsx", "/path/to/d5lc01008j2.xlsx",
+    "--output-root", "/tmp/rnaseq_phase3",
+    "--seed", "8",
+    "--device", "cuda:0",
+    "--condition", "C10",
+])
+```
+
+**Current RNA-seq workflow: phase023**
+```bash
+from recipe.single_cell_rnaseq_workflow import run_phase023
+
+run_phase023(
+    phase0_args=[
+        "--bundle-dir", "/path/to/bundle",
+        "--output-dir", "/tmp/rnaseq_phase0",
+        "--seed", "8",
+        "--device", "cuda:0",
+        "--condition", "C10",
+    ],
+    phase12_args=[
+        "--bundle-dir", "/path/to/bundle",
+        "--phase0-summary", "/tmp/rnaseq_phase0/summary.json",
+        "--phase0-model", "/tmp/rnaseq_phase0/best_model.pth",
+        "--output-root", "/tmp/rnaseq_phase12",
+        "--seed", "8",
+        "--device", "cuda:0",
+        "--condition", "C10",
+    ],
+    phase3_args=[
+        "--bundle-dir", "/path/to/bundle",
+        "--hidden-cache-root", "/tmp/rnaseq_phase12/phase2_hidden_cache",
+        "--truth-csv", "/path/to/protein_truth.csv",
+        "--mapping-xlsx", "/path/to/d5lc01008j2.xlsx",
+        "--output-root", "/tmp/rnaseq_phase3",
+        "--seed", "8",
+        "--device", "cuda:0",
+        "--condition", "C10",
+    ],
+)
+```
+
+**Top-level pipeline**
+```bash
+from recipe.pipeline import run_recipe_pipeline
+
+summary = run_recipe_pipeline(
+    modules=("A", "B", "C", "D"),
+    output_root="/tmp/recipe_pipeline",
+    species="human",
+    condition="KD",
+    seed=12,
+    device_name="cuda:0",
+)
+print(summary)
+```
+
+---
+
 ## Entrypoints and Workflows
 
 ### `__init__.py`
