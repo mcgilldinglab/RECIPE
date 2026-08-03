@@ -1,12 +1,21 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DATA_ROOT = REPO_ROOT / "data"
-MODEL_ROOT = REPO_ROOT / "models"
-OUTPUT_ROOT = REPO_ROOT / "outputs"
+
+
+def _path_from_env(env_name: str, default: Path) -> Path:
+    value = os.environ.get(env_name)
+    return Path(value).expanduser().resolve() if value else default
+
+
+DATA_ROOT = _path_from_env("RECIPE_DATA_ROOT", REPO_ROOT / "data")
+MODEL_ROOT = _path_from_env("RECIPE_MODEL_ROOT", REPO_ROOT / "models")
+OUTPUT_ROOT = _path_from_env("RECIPE_OUTPUT_ROOT", REPO_ROOT / "outputs")
+SOURCE_DATA_ROOT = _path_from_env("RECIPE_SOURCE_DATA_ROOT", DATA_ROOT)
 
 BULK_DATA_DIR = DATA_ROOT / "bulk"
 NETWORK_DATA_DIR = DATA_ROOT / "networks"

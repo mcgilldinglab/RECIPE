@@ -39,9 +39,6 @@ from .single_cell import (
 )
 from .utils import resolve_device, safe_r2, save_json, set_seed
 
-NOTEBOOK_PROJECT_ROOT = Path(__file__).resolve().parents[3]
-NOTEBOOK_PAUSING_ROOT = Path("/mnt/md0/luying/ribo/308code/pausing")
-
 
 def _load_model_state(model: torch.nn.Module, checkpoint_path: Path, device: torch.device) -> torch.nn.Module:
     payload = torch.load(checkpoint_path, map_location=device)
@@ -79,12 +76,13 @@ def _phase1_ordered_table(config: SingleCellTransferConfig) -> pd.DataFrame:
 
 
 def _build_notebook_phase0_data(seed: int) -> tuple[Data, dict[str, Any], pd.DataFrame, pd.DataFrame, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    raw_cds_csv = NOTEBOOK_PAUSING_ROOT / "cds_df38510.csv"
-    raw_order_csv = NOTEBOOK_PAUSING_ROOT / "data" / "sc11619genes422cell_normalized.csv"
-    raw_bulk_reference_csv = NOTEBOOK_PROJECT_ROOT / "data" / "24077132kdncmergedf.csv"
-    raw_pause_nc1_csv = NOTEBOOK_PAUSING_ROOT / "pause_scorescdsallnewnohupNC1_38510FINAL.csv"
-    raw_sequence_npy = NOTEBOOK_PROJECT_ROOT / "data" / "all_sequence_outputsnewbulk11619.npy"
-    raw_ppi_csv = NOTEBOOK_PROJECT_ROOT / "data" / "ppi_ebi_string_ppi3ensp_lr_IntAct_corummatrix4p_pbulk11619.csv"
+    config = SINGLE_CELL_TRANSFER_CONFIG
+    raw_cds_csv = config.cds_csv
+    raw_order_csv = config.transcript_order_csv
+    raw_bulk_reference_csv = config.bulk_reference_csv
+    raw_pause_nc1_csv = config.phase0_pause_csv
+    raw_sequence_npy = config.sequence_npy
+    raw_ppi_csv = config.ppi_csv
 
     cds_df = pd.read_csv(raw_cds_csv).iloc[:, 1:9].copy()
     cds_df["transcript_id"] = strip_version(cds_df["transcript_id_x"])
@@ -341,15 +339,15 @@ def _notebook_style_phase1_masks(target_values: np.ndarray) -> tuple[torch.Tenso
 
 
 def _build_notebook_phase1_data(config: SingleCellTransferConfig) -> tuple[Data, dict[str, Any], int, pd.DataFrame]:
-    raw_expression_csv = NOTEBOOK_PROJECT_ROOT / "data" / "sc11619genes422cell.csv"
-    raw_meta_csv = NOTEBOOK_PROJECT_ROOT / "brforepridictmeta_dataall.csv"
-    raw_pause_base_csv = NOTEBOOK_PAUSING_ROOT / "data" / "250429scribonew11619_422.csv"
-    raw_pause_rich_csv = NOTEBOOK_PAUSING_ROOT / "pause_scorescdsallscribo293Rich_dedup3sball.csv"
-    raw_cds_csv = NOTEBOOK_PAUSING_ROOT / "cds_df38510.csv"
-    raw_order_csv = NOTEBOOK_PAUSING_ROOT / "data" / "sc11619genes422cell_normalized.csv"
-    raw_bulk_reference_csv = NOTEBOOK_PROJECT_ROOT / "data" / "24077132kdncmergedf.csv"
-    raw_sequence_npy = NOTEBOOK_PROJECT_ROOT / "data" / "all_sequence_outputsnewbulk11619.npy"
-    raw_ppi_csv = NOTEBOOK_PROJECT_ROOT / "data" / "ppi_ebi_string_ppi3ensp_lr_IntAct_corummatrix4p_pbulk11619.csv"
+    raw_expression_csv = config.expression_csv
+    raw_meta_csv = config.metadata_csv
+    raw_pause_base_csv = config.pause_matrix_csv
+    raw_pause_rich_csv = config.phase0_pause_csv.parent / "fraction_rich_pause.csv"
+    raw_cds_csv = config.cds_csv
+    raw_order_csv = config.transcript_order_csv
+    raw_bulk_reference_csv = config.bulk_reference_csv
+    raw_sequence_npy = config.sequence_npy
+    raw_ppi_csv = config.ppi_csv
 
     ordered_df = load_ordered_cds_table(raw_cds_csv, raw_order_csv)
     reference_df = load_bulk_reference_table(raw_bulk_reference_csv)

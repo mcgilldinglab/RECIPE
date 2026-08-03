@@ -1,228 +1,229 @@
 # RECIPE
 
-RECIPE packages the workflow behind the project into a GitHub-style Python repository with English-only code and runnable entry scripts.
+RECIPE packages the workflow behind the manuscript into a Python project with reusable code, command-line entry points, packaged runtime data aliases, and a small smoke-test dataset.
 
-The pipeline integrates four modules:
+The pipeline has four modules:
 
-- Module A: feature construction and extrapolation to proteomics-undetected proteins.
-- Module B: bulk protein abundance prediction with the `RBULK` GraphSAGE regressor.
-- Module C: self-supervised PPI refinement with the `CPPI` edge scorer.
-- Module D: single-cell transfer with pseudo-bulk alignment and the `RSC` cell-graph head.
+- Module A: bulk inference for proteomics-undetected or unknown proteins.
+- Module B: bulk protein abundance prediction for proteins with measured labels.
+- Module C: self-supervised PPI refinement.
+- Module D: single-cell transfer with pseudo-bulk alignment and a cell-graph head.
 
 ## Repository Layout
 
 - `src/recipe/`: reusable package code.
-- `scripts/`: direct entry points for modules `A`, `B`, `C`, `D`, and the combined pipeline.
-- `data/`: English aliases for the curated datasets used by the packaged pipeline.
-- `models/`: English aliases for bundled checkpoints.
-- `figures/`: original exported figures preserved as project assets.
-- `docs/`: copied manifests from the earlier notebook-to-repo curation pass.
+- `scripts/`: command-line entry points for modules A-D, data builders, and the smoke demo.
+- `notebooks/`: sanitized training notebooks with outputs and local absolute paths removed.
+- `examples/smoke_data/`: tiny simulated data for a CPU-friendly demo.
+- `data/`: packaged runtime data aliases. Large arrays and graphs are tracked with Git LFS.
+- `data/splits/`: fixed train/validation/test CSV files used by the training notebooks.
+- `models/`: optional checkpoints. See `models/README.md`.
+- `docs/`: Sphinx documentation source.
+
+## System Requirements
+
+Tested environment on the local `pyg` conda environment:
+
+- Operating system: Linux `6.8.0-124-generic`, x86_64.
+- Python: `3.8.0`.
+- PyTorch: `2.1.1`.
+- CUDA runtime reported by PyTorch: `12.1`.
+- PyTorch Geometric: `2.5.3`.
+- CUDA availability during test: `True`.
+- Other tested Python packages: `numpy 1.24.3`, `pandas 2.0.3`, `scipy 1.10.1`, `scikit-learn 1.3.2`, `matplotlib 3.6.3`, `networkx 3.1`, `seaborn 0.13.2`, `openpyxl 3.1.5`, `typing_extensions 4.9.0`.
+
+Package metadata supports Python `>=3.8`. The smoke demo runs on CPU. Full-size training and inference are much faster with an NVIDIA GPU; `--device auto` uses `cuda:0` when available and falls back to CPU. The full human unknown PPI graph is about 51-54 GB and is intentionally external, so that workflow needs substantially more disk and memory than the smoke demo or mouse packaged examples.
+
+No non-standard hardware is required for installation or the smoke demo. A CUDA-capable GPU is recommended for full model training on the large graph assets.
 
 ## Installation
 
-RECIPE is packaged as the `recipe` Python module and lives under the `RECIPE/` subdirectory of the GitHub repository.
+### Existing `pyg` Environment
 
-Recommended runtime:
-
-- Python `>=3.10`
-- PyTorch with a matching `torch-geometric` install
-
-Install directly from GitHub:
+On the tested machine:
 
 ```bash
-python -m pip install -U pip
-python -m pip install "git+https://github.com/mcgilldinglab/RECIPE.git@main#subdirectory=RECIPE"
+conda activate pyg
+cd /path/to/RECIPE/RECIPE
+python -m pip install -e . --no-deps
+python -c "import recipe; print(recipe.__file__)"
 ```
 
-Install from a local clone in editable mode:
+Typical install time in an existing PyTorch/PyG environment is under 1 minute because the heavy dependencies are already installed. Editable installation in the tested `pyg` environment completed successfully in about 11 seconds.
+
+### Fresh Environment
+
+Install PyTorch and PyTorch Geometric with wheels matching your CUDA or CPU setup first, then install RECIPE:
 
 ```bash
+conda create -n recipe python=3.8 -y
+conda activate recipe
+
+# Example only; choose the PyTorch/PyG commands matching your CUDA or CPU setup.
+python -m pip install "torch>=2.1" "torch-geometric>=2.5"
+
 git clone https://github.com/mcgilldinglab/RECIPE.git
 cd RECIPE/RECIPE
-python -m pip install -U pip
 python -m pip install -r requirements.txt
 python -m pip install -e .
 ```
 
-Quick import check:
+Typical fresh environment setup time on a normal desktop or workstation is about 10-30 minutes, mostly depending on PyTorch/PyG wheel downloads.
+
+### Install From GitHub
+
+The Python package lives in the repository subdirectory `RECIPE/`:
 
 ```bash
-python -c "import recipe; print(recipe.__file__)"
+python -m pip install "git+https://github.com/mcgilldinglab/RECIPE.git@main#subdirectory=RECIPE"
 ```
 
-## Documentation
-
-Read the Docs should be configured from the repository root with `.readthedocs.yaml`, which points at `RECIPE/docs/conf.py`.
-
-Build the docs locally:
+If you install this way and keep data outside site-packages, point RECIPE to the data and checkpoint directories:
 
 ```bash
-cd RECIPE/RECIPE
-python -m pip install -r docs/requirements.txt
-python -m sphinx -b html docs docs/_build/html
+export RECIPE_DATA_ROOT=/path/to/RECIPE/RECIPE/data
+export RECIPE_MODEL_ROOT=/path/to/RECIPE/RECIPE/models
 ```
 
-## Data Availability
+## Data
 
-The packaged workflow uses both small text tables and large binary assets under `data/`.
+The repository includes a small simulated demo dataset:
 
-- Small and medium files that are below GitHub's normal limit can be committed directly.
-- Large runtime assets should be tracked with Git LFS via [`RECIPE/.gitattributes`](./.gitattributes).
-- `data/networks/human_ppi_unknown.csv` is about `54 GB` locally and should stay external. It is too large for normal GitHub storage and too large for Git LFS per-file limits.
+- `examples/smoke_data/bulk_reference.csv`
+- `examples/smoke_data/sequence_embeddings.csv`
+- `examples/smoke_data/ppi_matrix.csv`
 
-The current upload strategy is documented in [`data/README.md`](./data/README.md). For PPI files, only the smaller training-time graphs are intended for GitHub:
+The packaged runtime data are under `data/`. Large files are tracked with Git LFS where they are suitable for GitHub. The full `data/networks/human_ppi_unknown.csv` is not committed because it is about 51-54 GB; distribute it separately and place it at that path if you need the human unknown workflow.
 
-- `data/networks/human_ppi_known.csv`
-- `data/networks/mouse_ppi_known.csv`
-- `data/networks/mouse_ppi_unknown.csv`
-- `data/networks/single_cell_transfer_ppi.csv`
-
-## Data Construction
-
-Rebuild the packaged English aliases under `data/`:
+To rebuild aliases from a private source data tree, arrange that tree with the same relative layout as `data/` and then run:
 
 ```bash
-python3 scripts/build_data_aliases.py
+export RECIPE_SOURCE_DATA_ROOT=/path/to/source/project
+python scripts/build_data_aliases.py --manifest-json data/alias_manifest.json
 ```
 
-Build packaged bulk feature tables:
+## Smoke Demo
+
+Run the CPU-friendly demo:
 
 ```bash
-python3 scripts/build_bulk_features.py --species human --task unknown --output-csv data/bulk/human_unknown_features.csv
-python3 scripts/build_bulk_features.py --species mouse --task known --output-csv data/bulk/mouse_known_features.csv
+cd /path/to/RECIPE/RECIPE
+python scripts/run_smoke_demo.py --device cpu --output-dir outputs/smoke_demo
 ```
 
-Rebuild bulk coexpression matrices:
+Expected run time on a normal desktop/workstation: under 1 minute. The tested `pyg` CPU run completed in about 4.7 seconds wall time.
 
-```bash
-python3 scripts/build_coexpression.py --species human
-python3 scripts/build_coexpression.py --species mouse
-```
+Expected output:
 
-Rebuild packaged single-cell inputs:
+- Console JSON containing `"demo": "smoke_bulk_graphsage"` and `"node_count": 8`.
+- `outputs/smoke_demo/predictions.csv`
+- `outputs/smoke_demo/embeddings.npy`
+- `outputs/smoke_demo/metrics.json`
+- `outputs/smoke_demo/sequence_embeddings.npy`
 
-```bash
-python3 scripts/build_single_cell_inputs.py
-```
+Example JSON fields:
 
-Run the full packaged data build:
-
-```bash
-python3 scripts/build_all_data.py
+```json
+{
+  "demo": "smoke_bulk_graphsage",
+  "node_count": 8,
+  "outputs": {
+    "prediction_csv": "outputs/smoke_demo/predictions.csv",
+    "embedding_npy": "outputs/smoke_demo/embeddings.npy",
+    "metrics_json": "outputs/smoke_demo/metrics.json"
+  }
+}
 ```
 
 ## Direct Commands
 
-Module A, human unknown:
+Module A, mouse unknown benchmark based on the notebook-mapped dataset:
 
 ```bash
-python3 scripts/run_module_a.py \
-  --species human \
-  --condition KD \
-  --output-dir outputs/module_a
-```
-
-Module A, mouse unknown:
-
-```bash
-python3 scripts/run_module_a.py \
+python scripts/run_module_a.py \
   --species mouse \
   --condition KD \
-  --output-dir outputs/module_a
+  --output-dir outputs/module_a_mouse_unknown \
+  --device auto
 ```
 
-Module B, human known:
+Module B, mouse known benchmark:
 
 ```bash
-python3 scripts/run_module_b.py \
-  --species human \
-  --condition KD \
-  --output-dir outputs/module_b
-```
-
-Module B, mouse known:
-
-```bash
-python3 scripts/run_module_b.py \
+python scripts/run_module_b.py \
   --species mouse \
   --condition KD \
-  --output-dir outputs/module_b
+  --output-dir outputs/module_b_mouse_known \
+  --device auto
 ```
 
-Module C, human PPI refinement:
+Module C, PPI refinement after a bulk checkpoint exists:
 
 ```bash
-python3 scripts/run_module_c.py \
-  --species human \
-  --condition KD \
-  --output-dir outputs/module_c
-```
-
-Module C, mouse PPI refinement:
-
-```bash
-python3 scripts/run_module_c.py \
+python scripts/run_module_b.py \
   --species mouse \
   --condition KD \
-  --output-dir outputs/module_c
+  --output-dir outputs/module_b_mouse_known \
+  --device auto \
+  --train
+
+python scripts/run_module_c.py \
+  --species mouse \
+  --condition KD \
+  --output-dir outputs/module_c_mouse_ppi \
+  --bulk-checkpoint-path outputs/module_b_mouse_known/model.pth \
+  --device auto
 ```
 
-Module D, packaged single-cell transfer:
+Module D, single-cell transfer:
 
 ```bash
-python3 scripts/run_module_d.py \
+python scripts/run_module_d.py \
   --steps phase0,phase1,phase2 \
-  --output-dir outputs/module_d
+  --output-dir outputs/module_d \
+  --device auto
 ```
 
-Run the complete packaged workflow:
+Combined pipeline:
 
 ```bash
-python3 scripts/run_recipe.py \
+python scripts/run_recipe.py \
   --modules A,B,C,D \
-  --species human \
+  --species mouse \
   --condition KD \
-  --output-root outputs/pipeline
+  --output-root outputs/pipeline \
+  --device auto
 ```
-
-## Retraining
-
-Modules A and B reuse bundled `RBULK` checkpoints by default. Module D reuses the bundled phase 0 bulk checkpoint, then fits a fresh packaged `RSCHead` in phase 1. To retrain more aggressively, add the relevant training flag.
-
-Examples:
-
-```bash
-python3 scripts/run_module_b.py --species human --condition KD --train
-python3 scripts/run_module_d.py --steps phase0,phase1,phase2 --train-phase0 --train-phase1
-```
-
-## Input Mapping
-
-The packaged scripts point to English aliases under `data/` and `models/`. Those aliases map to the original project assets used in the notebooks you listed.
-
-Notebook lineage captured by the packaged modules:
-
-- Module A, human unknown: `2411...unknown...newseed.ipynb`
-- Module A, mouse unknown: `2411...unknown...ms copy.ipynb`
-- Module B, human known: `2411...known...copy 3newseeds.ipynb`
-- Module B, mouse known: `2411...known...ms ...seed.ipynb`
-- Module C, human and mouse PPI refinement: `2411...ppi...ipynb`
-- Module D, single-cell transfer: the three `2503/2504` self-learning and transfer notebooks
-
-## Resource Notes
-
-- `data/networks/human_ppi_unknown.csv` is about `51 GB`. Module A on the human unknown setting is the heaviest configuration.
-- `data/networks/single_cell_transfer_ppi.csv` is about `258 MB`, so the packaged single-cell path is much lighter than the human unknown bulk graph.
-- The scripts default to `--device auto`, which uses `cuda:0` when available and falls back to CPU otherwise.
-- If the selected GPU runs out of memory, rerun the same command with `--device cpu`.
 
 ## Outputs
 
-Each module writes structured outputs under `outputs/`:
+Module A and B write:
 
-- Module A and B: `predictions.csv`, `embeddings.npy`, `metrics.json`
-- Module C: `candidate_edges.csv`, `known_edge_scores.csv`, `edge_classifier.pth`, `summary.json`
-- Module D:
-  - `phase0/`: bulk self-learning checkpoint, transcript predictions, cell embeddings
-  - `phase1/`: `RSC` checkpoint, adjacency matrix, training history
-  - `phase2/`: predicted cell-by-gene matrix and metadata table
+- `predictions.csv`: transcript IDs, predictions, observed targets, split labels.
+- `embeddings.npy`: learned node embeddings.
+- `metrics.json`: train/validation/test metrics, scaling metadata, and checkpoint path.
+- `model.pth`: created when training is run or no default checkpoint exists.
+
+Module C writes:
+
+- `candidate_edges.csv`
+- `known_edge_scores.csv`
+- `edge_classifier.pth`
+- `bulk_node_embeddings.npy`
+- `summary.json`
+
+Module D writes phase-specific summaries and predictions under `phase0/`, `phase1/`, and `phase2/`.
+
+## Running On Your Own Data
+
+For bulk workflows, prepare:
+
+- A reference CSV with `transcript_id`, RNA expression columns such as `rNC2` or `rKD2`, protein target columns such as `NC3` or `KD3`, and a pause-count column.
+- A sequence embedding `.npy` file whose row count and order match the reference CSV.
+- A square PPI adjacency CSV whose dimensions match the number of reference rows.
+
+Use the existing workflow code directly if your column names match one of the packaged configs, or build a custom `BulkConditionSpec` and call `build_bulk_graph_from_dataframe`.
+
+## Reproduction Notes
+
+For a minimal reproducibility check, run the smoke demo and confirm that the three output files above are produced. For manuscript-scale reproduction, run the module commands with the packaged or externally restored runtime data and record the generated `metrics.json` / `summary.json` files. Use a fixed `--seed` value, and record the exact PyTorch/PyG/CUDA versions from the tested environment section.

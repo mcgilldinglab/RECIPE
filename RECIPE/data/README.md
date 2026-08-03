@@ -1,68 +1,66 @@
 # RECIPE Data Layout
 
-This directory contains the packaged runtime assets used by `recipe.config`.
+This directory contains packaged runtime data aliases used by `recipe.config`.
 
-## Recommended GitHub Strategy
+## Smoke Demo
 
-- Commit small CSV and metadata files directly to Git.
-- Track large runtime assets with Git LFS.
-- Keep oversized assets outside GitHub and document how to fetch them.
+The small simulated demo dataset is stored outside this runtime directory:
 
-## PPI Files To Upload
+- `../examples/smoke_data/bulk_reference.csv`
+- `../examples/smoke_data/sequence_embeddings.csv`
+- `../examples/smoke_data/ppi_matrix.csv`
 
-For GitHub, only the smaller PPI graphs needed for packaged training and inference should be uploaded.
+Run it from the package root:
+
+```bash
+python scripts/run_smoke_demo.py --device cpu --output-dir outputs/smoke_demo
+```
+
+## GitHub Strategy
+
+Commit small CSV and metadata files directly. Track large runtime assets with Git LFS when suitable for GitHub.
+
+## Training Splits
+
+Fixed train/validation/test split CSV files are stored in `splits/`. These files are small enough to commit directly and are used by the public training notebooks as reproducible split references.
+
+Regenerate them with:
+
+```bash
+python scripts/build_training_splits.py
+```
 
 Track these with Git LFS:
 
-- `data/networks/human_ppi_known.csv`
-- `data/networks/mouse_ppi_known.csv`
-- `data/networks/mouse_ppi_unknown.csv`
-- `data/networks/single_cell_transfer_ppi.csv`
-- `data/networks/human_coexpression.csv`
-- `data/networks/mouse_coexpression.csv`
-
-Do not upload this file to GitHub:
-
-- `data/networks/human_ppi_unknown.csv`
-
-That file is about `54 GB` locally and should stay in external storage, with a documented download step.
-
-## Other Runtime Assets
-
-These packaged assets are also referenced by the code and should stay alongside the repository if you want the packaged workflows to run without rebuilding data:
-
-- `data/bulk/human_reference.csv`
-- `data/bulk/mouse_reference.csv`
 - `data/bulk/human_sequence_known.npy`
 - `data/bulk/human_sequence_unknown.npy`
 - `data/bulk/mouse_sequence_known.npy`
 - `data/bulk/mouse_sequence_unknown.npy`
 - `data/bulk/single_cell_transfer_sequence.npy`
-- `data/pausing/cds_annotations.csv`
-- `data/pausing/human_nc2_pause.csv`
-- `data/pausing/human_scribo_pause.csv`
-- `data/pausing/pseudobulk_pause_matrix.csv`
-- `data/single_cell/expression_raw.csv`
-- `data/single_cell/expression_normalized.csv`
-- `data/single_cell/metadata.csv`
-- `data/single_cell/scriboseq_metadata.csv`
+- `data/networks/human_ppi_known.csv`
+- `data/networks/mouse_ppi_known.csv`
+- `data/networks/mouse_ppi_unknown.csv`
+- `data/networks/single_cell_transfer_ppi.csv`
 - `data/single_cell/cell_embeddings.npy`
-- `data/single_cell/cell_outputs.npy`
-- `data/single_cell/predicted_cell_matrix.csv`
-- `data/single_cell/predicted_cell_matrix_seed123.csv`
 
-## Git LFS Setup
+Do not upload this file to GitHub:
 
-From the repository root:
+- `data/networks/human_ppi_unknown.csv`
+
+That file is about 51-54 GB locally and should stay in external storage.
+
+## Rebuilding Aliases
+
+Set a private source data root that mirrors this `data/` directory layout, then rebuild:
 
 ```bash
-git lfs install
-git add RECIPE/.gitattributes
-git add RECIPE/data
+export RECIPE_SOURCE_DATA_ROOT=/path/to/source/project
+python scripts/build_data_aliases.py --manifest-json data/alias_manifest.json
 ```
 
-If you later move the full-size `human_ppi_unknown.csv` to external storage, keep the packaged path documented and provide either:
+For a package installed outside the repository, set:
 
-- a download script, or
-- a release asset / object-storage URL, or
-- a separate institutional data location.
+```bash
+export RECIPE_DATA_ROOT=/path/to/RECIPE/RECIPE/data
+export RECIPE_MODEL_ROOT=/path/to/RECIPE/RECIPE/models
+```

@@ -1,24 +1,40 @@
 # Script Index
 
-Packaged entry points:
+Demo:
 
-- `scripts/build_data_aliases.py`: rebuild the packaged English alias tree under `data/`
-- `scripts/build_bulk_features.py`: export packaged bulk feature tables for human or mouse, known or unknown
-- `scripts/build_coexpression.py`: rebuild the packaged coexpression matrices
-- `scripts/build_single_cell_inputs.py`: rebuild normalized single-cell expression and the pseudobulk pause matrix
-- `scripts/build_all_data.py`: run the packaged data build end to end
-- `scripts/run_module_a.py`: module A, proteomics-undetected bulk inference
-- `scripts/run_module_b.py`: module B, known bulk protein prediction
-- `scripts/run_module_c.py`: module C, self-supervised PPI refinement
-- `scripts/run_module_d.py`: module D, single-cell transfer
-- `scripts/run_recipe.py`: combined multi-module runner
+- `scripts/run_smoke_demo.py`: CPU-friendly smoke test using `examples/smoke_data/`.
+
+Packaged module entry points:
+
+- `scripts/run_module_a.py`: module A, bulk unknown protein inference.
+- `scripts/run_module_b.py`: module B, known bulk protein prediction.
+- `scripts/run_module_c.py`: module C, self-supervised PPI refinement.
+- `scripts/run_module_d.py`: module D, single-cell transfer.
+- `scripts/run_recipe.py`: combined multi-module runner.
+
+Data construction entry points:
+
+- `scripts/build_data_aliases.py`: rebuild data aliases from `RECIPE_SOURCE_DATA_ROOT`.
+- `scripts/build_bulk_features.py`: export packaged bulk feature tables.
+- `scripts/build_coexpression.py`: rebuild a coexpression matrix.
+- `scripts/build_single_cell_inputs.py`: normalize the single-cell expression matrix.
+- `scripts/build_training_splits.py`: export fixed train/validation/test CSV files into `data/splits/`.
+- `scripts/build_all_data.py`: run lightweight packaged data-build steps; pass `--rebuild-aliases` only when source data should be relinked.
+
+Training notebooks:
+
+- `notebooks/training/bulk_mouse_unknown_training.ipynb`: bulk mouse unknown protein prediction with early stopping.
+- `notebooks/training/ppi_refinement_training.ipynb`: self-supervised PPI edge-refinement model training.
+- `notebooks/training/bulk_self_learning_training.ipynb`: bulk self-learning training for known and unknown targets.
+- `notebooks/training/single_cell_module_a_finetuning.ipynb`: single-cell Module A fine-tuning workflow.
+- `notebooks/training/single_cell_graph_training.ipynb`: single-cell graph model training workflow.
 
 Core package modules:
 
-- `src/recipe/data_construction.py`: packaged data builders for aliases, bulk features, coexpression, and single-cell inputs
-- `src/recipe/assets.py`: English path aliases for curated data and checkpoints
-- `src/recipe/config.py`: module-level dataset and checkpoint configuration
-- `src/recipe/bulk_workflow.py`: packaged bulk runner used by modules A and B
-- `src/recipe/ppi_workflow.py`: packaged PPI refinement runner used by module C
-- `src/recipe/single_cell_riboseq_workflow.py`: packaged three-stage single-cell workflow used by module D
-- `src/recipe/pipeline.py`: combined pipeline entry for scripted orchestration
+- `src/recipe/data_construction.py`: data aliasing and construction helpers.
+- `src/recipe/assets.py`: data, model, and output path resolution.
+- `src/recipe/config.py`: default task-level dataset and checkpoint configuration.
+- `src/recipe/bulk_workflow.py`: packaged bulk runner used by modules A and B.
+- `src/recipe/ppi_workflow.py`: packaged PPI refinement runner used by module C.
+- `src/recipe/single_cell_riboseq_workflow.py`: packaged three-stage single-cell workflow used by module D.
+- `src/recipe/pipeline.py`: combined pipeline entry point.

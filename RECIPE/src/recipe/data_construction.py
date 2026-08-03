@@ -10,7 +10,7 @@ from typing import Any, Iterable
 import numpy as np
 import pandas as pd
 
-from .assets import BULK_DATA_DIR, DATA_ROOT, NETWORK_DATA_DIR, PAUSING_DATA_DIR, SINGLE_CELL_DATA_DIR
+from .assets import BULK_DATA_DIR, NETWORK_DATA_DIR, PAUSING_DATA_DIR, SINGLE_CELL_DATA_DIR, SOURCE_DATA_ROOT
 from .bulk_regression import load_bulk_dataframe
 from .config import get_bulk_task_config
 from .utils import ensure_parent_dir, save_json
@@ -24,6 +24,8 @@ class AliasSpec:
 
 def _safe_link_or_copy(source: Path, target: Path) -> str:
     ensure_parent_dir(target)
+    if source.resolve() == target.resolve():
+        return "already_present"
     if target.exists() or target.is_symlink():
         target.unlink()
     try:
@@ -34,40 +36,44 @@ def _safe_link_or_copy(source: Path, target: Path) -> str:
         return "copy"
 
 
+def _alias_spec(relative_path: str) -> AliasSpec:
+    return AliasSpec(SOURCE_DATA_ROOT / relative_path, DATA_ROOT / relative_path)
+
+
 def alias_specs() -> list[AliasSpec]:
     return [
-        AliasSpec(DATA_ROOT / "project_data/24077132kdncmergedf.csv", BULK_DATA_DIR / "human_reference.csv"),
-        AliasSpec(DATA_ROOT / "project_data/24msc18allmergedDF7594.csv", BULK_DATA_DIR / "mouse_reference.csv"),
-        AliasSpec(DATA_ROOT / "project_data/all_sequence_outputsnew7132.npy", BULK_DATA_DIR / "human_sequence_known.npy"),
-        AliasSpec(DATA_ROOT / "project_data/all_sequence_outputs7132.npy", BULK_DATA_DIR / "human_sequence_unknown.npy"),
-        AliasSpec(DATA_ROOT / "project_data/all_sequence_outputsnewms7594.npy", BULK_DATA_DIR / "mouse_sequence_known.npy"),
-        AliasSpec(DATA_ROOT / "project_data/all_sequence_outputsnewms7594.npy", BULK_DATA_DIR / "mouse_sequence_unknown.npy"),
-        AliasSpec(DATA_ROOT / "project_data/all_sequence_outputsnewbulk11619.npy", BULK_DATA_DIR / "single_cell_transfer_sequence.npy"),
-        AliasSpec(DATA_ROOT / "project_data/9606ppi_matrix.csv", NETWORK_DATA_DIR / "human_ppi_known.csv"),
-        AliasSpec(DATA_ROOT / "project_data/ppi_ebi_string_ppi3ensp_lr_IntAct_corummatrix4p_p.csv", NETWORK_DATA_DIR / "human_ppi_unknown.csv"),
-        AliasSpec(DATA_ROOT / "project_data/msppi_matrixppiebilr2BIOGRID_corum_uniport.csv", NETWORK_DATA_DIR / "mouse_ppi_known.csv"),
-        AliasSpec(DATA_ROOT / "project_data/msppi_matrixppiebilr2BIOGRID_corum_uniport.csv", NETWORK_DATA_DIR / "mouse_ppi_unknown.csv"),
-        AliasSpec(DATA_ROOT / "project_data/ppi_ebi_string_ppi3ensp_lr_IntAct_corummatrix4p_pbulk11619.csv", NETWORK_DATA_DIR / "single_cell_transfer_ppi.csv"),
-        AliasSpec(DATA_ROOT / "project_data/240917co_expression_network_matrix.csv", NETWORK_DATA_DIR / "human_coexpression.csv"),
-        AliasSpec(DATA_ROOT / "project_data/240917co_expression_network_matrixms.csv", NETWORK_DATA_DIR / "mouse_coexpression.csv"),
-        AliasSpec(DATA_ROOT / "pausing/cds_df38510.csv", PAUSING_DATA_DIR / "cds_annotations.csv"),
-        AliasSpec(DATA_ROOT / "pausing/pause_scorescdsallnewnohupNC1_38510FINAL.csv", PAUSING_DATA_DIR / "human_nc1_pause.csv"),
-        AliasSpec(DATA_ROOT / "pausing/pause_scorescdsallnewnohupNC2_38510FINAL.csv", PAUSING_DATA_DIR / "human_nc2_pause.csv"),
-        AliasSpec(DATA_ROOT / "pausing/pause_scorescdsallscribo293SRR13125084_withoutcontam_AlignedsortedByCoorddedup3sb.csv", PAUSING_DATA_DIR / "human_scribo_pause.csv"),
-        AliasSpec(DATA_ROOT / "pausing/pause_scorescdsallscribo293Rich_dedup3sball.csv", PAUSING_DATA_DIR / "fraction_rich_pause.csv"),
-        AliasSpec(DATA_ROOT / "pausing/pause_scorescdsallscribo293Leu6h_dedup3sball.csv", PAUSING_DATA_DIR / "fraction_leu6h_pause.csv"),
-        AliasSpec(DATA_ROOT / "pausing/pause_scorescdsallscribo293Leu3h_dedup3sball.csv", PAUSING_DATA_DIR / "fraction_leu3h_pause.csv"),
-        AliasSpec(DATA_ROOT / "pausing/pause_scorescdsallscribo293Arg3h_dedup3sball.csv", PAUSING_DATA_DIR / "fraction_arg3h_pause.csv"),
-        AliasSpec(DATA_ROOT / "pausing/pause_scorescdsallscribo293Arg6h_dedup3sball.csv", PAUSING_DATA_DIR / "fraction_arg6h_pause.csv"),
-        AliasSpec(DATA_ROOT / "pausing/data/250429scribonew11619_422.csv", PAUSING_DATA_DIR / "pseudobulk_pause_matrix.csv"),
-        AliasSpec(DATA_ROOT / "project_data/sc11619genes422cell.csv", SINGLE_CELL_DATA_DIR / "expression_raw.csv"),
-        AliasSpec(DATA_ROOT / "project_data/sc11619genes422cell_normalized.csv", SINGLE_CELL_DATA_DIR / "expression_normalized.csv"),
-        AliasSpec(DATA_ROOT / "project_root/brforepridictmeta_dataall.csv", SINGLE_CELL_DATA_DIR / "metadata.csv"),
-        AliasSpec(DATA_ROOT / "project_data/GSE162060_HEK293Tscriboseq_meta.csv", SINGLE_CELL_DATA_DIR / "scriboseq_metadata.csv"),
-        AliasSpec(DATA_ROOT / "project_root/predicted_expression_421_11619_250504.csv", SINGLE_CELL_DATA_DIR / "predicted_cell_matrix.csv"),
-        AliasSpec(DATA_ROOT / "project_root/predicted_expression_421_11619_250504s123.csv", SINGLE_CELL_DATA_DIR / "predicted_cell_matrix_seed123.csv"),
-        AliasSpec(DATA_ROOT / "project_data/all_z_array_0503test.npy", SINGLE_CELL_DATA_DIR / "cell_embeddings.npy"),
-        AliasSpec(DATA_ROOT / "project_data/all_y_array_0503test.npy", SINGLE_CELL_DATA_DIR / "cell_outputs.npy"),
+        _alias_spec("bulk/human_reference.csv"),
+        _alias_spec("bulk/mouse_reference.csv"),
+        _alias_spec("bulk/human_sequence_known.npy"),
+        _alias_spec("bulk/human_sequence_unknown.npy"),
+        _alias_spec("bulk/mouse_sequence_known.npy"),
+        _alias_spec("bulk/mouse_sequence_unknown.npy"),
+        _alias_spec("bulk/single_cell_transfer_sequence.npy"),
+        _alias_spec("networks/human_ppi_known.csv"),
+        _alias_spec("networks/human_ppi_unknown.csv"),
+        _alias_spec("networks/mouse_ppi_known.csv"),
+        _alias_spec("networks/mouse_ppi_unknown.csv"),
+        _alias_spec("networks/single_cell_transfer_ppi.csv"),
+        _alias_spec("networks/human_coexpression.csv"),
+        _alias_spec("networks/mouse_coexpression.csv"),
+        _alias_spec("pausing/cds_annotations.csv"),
+        _alias_spec("pausing/human_nc1_pause.csv"),
+        _alias_spec("pausing/human_nc2_pause.csv"),
+        _alias_spec("pausing/human_scribo_pause.csv"),
+        _alias_spec("pausing/fraction_rich_pause.csv"),
+        _alias_spec("pausing/fraction_leu6h_pause.csv"),
+        _alias_spec("pausing/fraction_leu3h_pause.csv"),
+        _alias_spec("pausing/fraction_arg3h_pause.csv"),
+        _alias_spec("pausing/fraction_arg6h_pause.csv"),
+        _alias_spec("pausing/pseudobulk_pause_matrix.csv"),
+        _alias_spec("single_cell/expression_raw.csv"),
+        _alias_spec("single_cell/expression_normalized.csv"),
+        _alias_spec("single_cell/metadata.csv"),
+        _alias_spec("single_cell/scriboseq_metadata.csv"),
+        _alias_spec("single_cell/predicted_cell_matrix.csv"),
+        _alias_spec("single_cell/predicted_cell_matrix_seed123.csv"),
+        _alias_spec("single_cell/cell_embeddings.npy"),
+        _alias_spec("single_cell/cell_outputs.npy"),
     ]
 
 
