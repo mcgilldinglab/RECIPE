@@ -23,7 +23,7 @@ class BulkConditionSpec:
     name: str
     expression_col: str
     target_col: str
-    pause_col: str
+    pause_col: str | None
 
 
 def load_bulk_dataframe(
@@ -94,7 +94,10 @@ def build_bulk_graph_from_dataframe(
 ) -> tuple[Data, dict[str, Any]]:
     reference_df = bulk_df if reference_df is None else reference_df
 
-    for required_col in (condition.expression_col, condition.target_col, condition.pause_col):
+    required_cols = [condition.expression_col, condition.target_col]
+    if condition.pause_col is not None:
+        required_cols.append(condition.pause_col)
+    for required_col in required_cols:
         if required_col not in bulk_df.columns:
             raise KeyError(f"Missing required column '{required_col}' in bulk dataframe.")
 
@@ -117,7 +120,10 @@ def build_bulk_graph_from_dataframe(
         )
 
     edge_index, edge_weight = load_ppi_graph(ppi_csv_path, add_loops=add_loops)
-    pause_values = bulk_df[condition.pause_col].to_numpy(dtype=np.float32).reshape(-1, 1)
+    if condition.pause_col is None:
+        pause_values = np.zeros((len(bulk_df), 1), dtype=np.float32)
+    else:
+        pause_values = bulk_df[condition.pause_col].to_numpy(dtype=np.float32).reshape(-1, 1)
 
     data = Data(
         x=torch.tensor(x_values, dtype=torch.float32),

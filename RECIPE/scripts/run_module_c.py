@@ -23,6 +23,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--sequence-npy", default=None, help="Sequence embedding NPY used by the known-protein model.")
     parser.add_argument("--ppi-csv", default=None, help="Known PPI adjacency CSV.")
     parser.add_argument("--coexpression-csv", default=None, help="Optional coexpression CSV for edge-score summaries.")
+    parser.add_argument(
+        "--input-col",
+        "--expression-col",
+        dest="expression_col",
+        default=None,
+        help="Input signal column, for example RNA-seq, Ribo-seq, or another transcript-level feature.",
+    )
+    parser.add_argument("--target-col", default=None, help="Protein abundance target column.")
+    parser.add_argument("--pause-col", default=None, help="Pausing-count column.")
+    parser.add_argument("--no-pause", action="store_true", help="Use zero pausing features when no pausing column is available.")
     parser.add_argument("--edge-max-epochs", type=int, default=1000)
     parser.add_argument("--edge-patience", type=int, default=50)
     parser.add_argument("--threshold", type=float, default=0.8)
@@ -48,6 +58,10 @@ def main() -> None:
         sequence_npy=args.sequence_npy,
         ppi_csv=args.ppi_csv,
         coexpression_csv=args.coexpression_csv,
+        expression_col=args.expression_col,
+        target_col=args.target_col,
+        pause_col=args.pause_col,
+        use_pause=not args.no_pause,
     )
     print(json.dumps(summary, indent=2, ensure_ascii=False))
 

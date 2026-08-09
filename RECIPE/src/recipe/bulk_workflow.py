@@ -10,6 +10,7 @@ import torch
 
 from .bulk_data import split_index_tensor
 from .bulk_regression import (
+    BulkConditionSpec,
     evaluate_graph_regression,
     load_bulk_dataframe,
     build_bulk_graph_from_dataframe,
@@ -39,6 +40,10 @@ def build_bulk_graph_for_task(
     sequence_npy: str | Path | None = None,
     ppi_csv: str | Path | None = None,
     pause_csv: str | Path | None = None,
+    expression_col: str | None = None,
+    target_col: str | None = None,
+    pause_col: str | None = None,
+    use_pause: bool = True,
 ) -> tuple[BulkTaskConfig, pd.DataFrame, Any, dict[str, Any]]:
     config = with_bulk_input_paths(
         get_bulk_task_config(task=task, species=species),
@@ -49,6 +54,12 @@ def build_bulk_graph_for_task(
         pause_csv=pause_csv,
     )
     condition = config.conditions[condition_name.upper()]
+    condition = BulkConditionSpec(
+        name=condition.name,
+        expression_col=expression_col or condition.expression_col,
+        target_col=target_col or condition.target_col,
+        pause_col=(pause_col or condition.pause_col) if use_pause else None,
+    )
     bulk_df = load_bulk_dataframe(
         reference_csv_path=config.reference_csv,
         pause_csv_path=config.pause_csv,
@@ -202,10 +213,15 @@ def run_bulk_module(
     ppi_csv: str | Path | None = None,
     pause_csv: str | Path | None = None,
     split_csv: str | Path | None = None,
+    expression_col: str | None = None,
+    target_col: str | None = None,
+    pause_col: str | None = None,
+    use_pause: bool = True,
 ) -> dict[str, Any]:
     set_seed(seed)
     device = resolve_device(device_name)
     output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     config, bulk_df, data, scaling_summary = build_bulk_graph_for_task(
         species=species,
@@ -217,6 +233,10 @@ def run_bulk_module(
         sequence_npy=sequence_npy,
         ppi_csv=ppi_csv,
         pause_csv=pause_csv,
+        expression_col=expression_col,
+        target_col=target_col,
+        pause_col=pause_col,
+        use_pause=use_pause,
     )
     split_csv_path = Path(split_csv).expanduser().resolve() if split_csv else None
     splits = (

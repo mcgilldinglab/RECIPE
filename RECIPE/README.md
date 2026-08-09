@@ -201,13 +201,24 @@ Module D writes phase-specific summaries and predictions under `phase0/`, `phase
 
 For bulk workflows, prepare:
 
-- A reference CSV with `transcript_id`, RNA expression columns such as `rNC2` or `rKD2`, protein target columns such as `NC3` or `KD3`, and a pause-count column.
+- A reference CSV with one row per transcript or protein. It must include a transcript identifier column and the feature columns used as model inputs, for example RNA-seq, Ribo-seq, or other translation-related measurements. If supervised training is needed, include a protein abundance target column. A pausing-count column can also be used when available.
 - A sequence embedding `.npy` file whose row count and order match the reference CSV.
 - A square PPI adjacency CSV whose dimensions match the number of reference rows.
 
-Use the workflow code directly if your column names match one of the existing configs, or build a custom `BulkConditionSpec` and call `build_bulk_graph_from_dataframe`.
+Column names are not fixed by the package. The bundled configs use names such as `rNC2`, `rKD2`, `NC3`, and `KD3` only because those are the column names in the example datasets. For new data, pass your own input, target, and optional pausing columns on the command line, or define a `BulkConditionSpec` and call `build_bulk_graph_from_dataframe` from Python.
 
-For command-line use, pass these files directly with `--reference-csv`, `--sequence-npy`, `--ppi-csv`, and optionally `--split-csv`. For a data directory that mirrors the repository `data/` layout, pass `--data-root /path/to/data`.
+For command-line use, pass these files directly with `--reference-csv`, `--sequence-npy`, `--ppi-csv`, and optionally `--split-csv`. Use `--input-col` for the RNA-seq, Ribo-seq, or other transcript-level input column, `--target-col` for the protein abundance column, and `--pause-col` for a pausing-count column when available. If no pausing feature is available, pass `--no-pause`. For a data directory that mirrors the repository `data/` layout, pass `--data-root /path/to/data`.
+
+```bash
+python scripts/run_module_a.py \
+  --reference-csv /path/to/reference.csv \
+  --sequence-npy /path/to/sequence.npy \
+  --ppi-csv /path/to/ppi.csv \
+  --input-col your_ribo_or_rna_column \
+  --target-col your_protein_column \
+  --no-pause \
+  --output-dir outputs/custom_bulk
+```
 
 ## Reproduction Notes
 

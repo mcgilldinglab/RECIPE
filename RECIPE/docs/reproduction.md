@@ -232,6 +232,12 @@ When Module B and Module C are run together, Module C uses `${OUTPUT_ROOT}/all_m
 
 Train/validation/test split files are included under `data/splits/`. The data preparation section above shows the regeneration command. Pass these files with `--split-csv` for bulk modules, `--phase0-split-csv`, `--phase1-split-csv`, and `--phase2-split-csv` for Module D, or the matching split arguments in `run_recipe.py`. If a split file is not provided, the runners fall back to generating the train/validation/test partitions from the seed value.
 
+## Custom Bulk Columns
+
+The example bulk data use column names such as `rNC2`, `rKD2`, `NC3`, and `KD3`, but these names are not required. For Modules A-C, pass `--input-col`, `--target-col`, and optionally `--pause-col` to select columns in your own reference CSV. The input column can contain RNA-seq, Ribo-seq, or another transcript-level feature. Use `--no-pause` when no pausing-count column is available.
+
+For the combined runner, use the matching bulk arguments: `--bulk-input-col`, `--bulk-target-col`, `--bulk-pause-col`, and `--no-bulk-pause`.
+
 ## Notes
 
 - The mouse workflows can be reproduced from files included in the repository.

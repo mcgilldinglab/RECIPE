@@ -2,7 +2,7 @@
 
 This is a tiny simulated bulk/PPI dataset for checking that RECIPE, PyTorch, and PyTorch Geometric run correctly.
 
-- `bulk_reference.csv`: 8 transcript/protein rows with RNA, protein, and pause-count columns.
+- `bulk_reference.csv`: 8 transcript/protein rows with input signal, protein target, and pause-count columns.
 - `sequence_embeddings.csv`: 8 rows of 4-dimensional simulated sequence embeddings.
 - `ppi_matrix.csv`: 8 by 8 simulated PPI adjacency matrix.
 

@@ -68,6 +68,10 @@ def run_ppi_refinement(
     sequence_npy: str | Path | None = None,
     ppi_csv: str | Path | None = None,
     coexpression_csv: str | Path | None = None,
+    expression_col: str | None = None,
+    target_col: str | None = None,
+    pause_col: str | None = None,
+    use_pause: bool = True,
 ) -> dict[str, Any]:
     set_seed(seed)
     device = resolve_device(device_name)
@@ -83,6 +87,10 @@ def run_ppi_refinement(
         reference_csv=reference_csv,
         sequence_npy=sequence_npy,
         ppi_csv=ppi_csv,
+        expression_col=expression_col,
+        target_col=target_col,
+        pause_col=pause_col,
+        use_pause=use_pause,
     )
     model: RBULK = make_bulk_model(data, device=device)
     checkpoint = Path(bulk_checkpoint_path) if bulk_checkpoint_path else config.default_checkpoint

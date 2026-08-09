@@ -18,6 +18,10 @@ def run_recipe_pipeline(
     data_root: str | Path | None = None,
     bulk_unknown_split_csv: str | Path | None = None,
     bulk_known_split_csv: str | Path | None = None,
+    bulk_expression_col: str | None = None,
+    bulk_target_col: str | None = None,
+    bulk_pause_col: str | None = None,
+    use_bulk_pause: bool = True,
     phase0_split_csv: str | Path | None = None,
     phase1_split_csv: str | Path | None = None,
     phase2_split_csv: str | Path | None = None,
@@ -38,6 +42,10 @@ def run_recipe_pipeline(
             device_name=device_name,
             data_root=data_root,
             split_csv=bulk_unknown_split_csv,
+            expression_col=bulk_expression_col,
+            target_col=bulk_target_col,
+            pause_col=bulk_pause_col,
+            use_pause=use_bulk_pause,
         )
     if "B" in normalized_modules:
         summary["B"] = run_bulk_module(
@@ -49,6 +57,10 @@ def run_recipe_pipeline(
             device_name=device_name,
             data_root=data_root,
             split_csv=bulk_known_split_csv,
+            expression_col=bulk_expression_col,
+            target_col=bulk_target_col,
+            pause_col=bulk_pause_col,
+            use_pause=use_bulk_pause,
         )
     if "C" in normalized_modules:
         module_b_checkpoint = output_root / "module_b" / "model.pth"
@@ -61,6 +73,10 @@ def run_recipe_pipeline(
             device_name=device_name,
             bulk_checkpoint_path=bulk_checkpoint_path,
             data_root=data_root,
+            expression_col=bulk_expression_col,
+            target_col=bulk_target_col,
+            pause_col=bulk_pause_col,
+            use_pause=use_bulk_pause,
         )
     if "D" in normalized_modules:
         summary["D"] = run_single_cell_transfer(

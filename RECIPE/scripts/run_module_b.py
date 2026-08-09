@@ -25,6 +25,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ppi-csv", default=None, help="PPI adjacency CSV.")
     parser.add_argument("--pause-csv", default=None, help="Optional pausing CSV.")
     parser.add_argument("--split-csv", default=None, help="Optional fixed train/val/test split CSV.")
+    parser.add_argument(
+        "--input-col",
+        "--expression-col",
+        dest="expression_col",
+        default=None,
+        help="Input signal column, for example RNA-seq, Ribo-seq, or another transcript-level feature.",
+    )
+    parser.add_argument("--target-col", default=None, help="Protein abundance target column.")
+    parser.add_argument("--pause-col", default=None, help="Pausing-count column.")
+    parser.add_argument("--no-pause", action="store_true", help="Use zero pausing features when no pausing column is available.")
     parser.add_argument("--max-epochs", type=int, default=3000)
     parser.add_argument("--patience", type=int, default=200)
     parser.add_argument("--learning-rate", type=float, default=7e-2)
@@ -48,6 +58,10 @@ def main() -> None:
         ppi_csv=args.ppi_csv,
         pause_csv=args.pause_csv,
         split_csv=args.split_csv,
+        expression_col=args.expression_col,
+        target_col=args.target_col,
+        pause_col=args.pause_col,
+        use_pause=not args.no_pause,
         max_epochs=args.max_epochs,
         patience=args.patience,
         learning_rate=args.learning_rate,

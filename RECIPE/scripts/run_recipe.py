@@ -21,6 +21,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--data-root", default=None, help="Directory containing RECIPE data subfolders.")
     parser.add_argument("--bulk-unknown-split-csv", default=None)
     parser.add_argument("--bulk-known-split-csv", default=None)
+    parser.add_argument(
+        "--bulk-input-col",
+        "--bulk-expression-col",
+        dest="bulk_expression_col",
+        default=None,
+        help="Bulk input signal column, for example RNA-seq, Ribo-seq, or another transcript-level feature.",
+    )
+    parser.add_argument("--bulk-target-col", default=None, help="Bulk protein abundance target column.")
+    parser.add_argument("--bulk-pause-col", default=None, help="Bulk pausing-count column.")
+    parser.add_argument("--no-bulk-pause", action="store_true", help="Use zero pausing features for bulk modules.")
     parser.add_argument("--phase0-split-csv", default=None)
     parser.add_argument("--phase1-split-csv", default=None)
     parser.add_argument("--phase2-split-csv", default=None)
@@ -40,6 +50,10 @@ def main() -> None:
         data_root=args.data_root,
         bulk_unknown_split_csv=args.bulk_unknown_split_csv,
         bulk_known_split_csv=args.bulk_known_split_csv,
+        bulk_expression_col=args.bulk_expression_col,
+        bulk_target_col=args.bulk_target_col,
+        bulk_pause_col=args.bulk_pause_col,
+        use_bulk_pause=not args.no_bulk_pause,
         phase0_split_csv=args.phase0_split_csv,
         phase1_split_csv=args.phase1_split_csv,
         phase2_split_csv=args.phase2_split_csv,
