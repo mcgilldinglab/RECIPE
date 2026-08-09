@@ -12,7 +12,7 @@ Each CSV contains:
 - `seed`: random seed used for the split.
 - `target_column`: target column used to define labeled nodes.
 
-Use the `split` column to select the rows for each training stage. These files can be regenerated with:
+Use the `split` column to select the rows for each training stage. The packaged runners accept these files through `--split-csv` for bulk modules and through `--phase0-split-csv`, `--phase1-split-csv`, and `--phase2-split-csv` for Module D. These files can be regenerated with:
 
 ```bash
 python scripts/build_training_splits.py

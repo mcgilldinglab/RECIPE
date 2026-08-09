@@ -49,12 +49,7 @@ Typical fresh setup time: about 10-30 minutes, depending mostly on PyTorch/PyG d
 python -m pip install "git+https://github.com/mcgilldinglab/RECIPE.git@main#subdirectory=RECIPE"
 ```
 
-If runtime data are outside the installed package:
-
-```bash
-export RECIPE_DATA_ROOT=/path/to/RECIPE/RECIPE/data
-export RECIPE_MODEL_ROOT=/path/to/RECIPE/RECIPE/models
-```
+If runtime data are outside the installed package, pass their location when running a workflow with `--data-root /path/to/RECIPE/RECIPE/data` or with the file-level input arguments listed in `reproduction.md`.
 
 ## Verify
 

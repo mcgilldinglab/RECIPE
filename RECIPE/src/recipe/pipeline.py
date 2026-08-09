@@ -15,6 +15,12 @@ def run_recipe_pipeline(
     condition: str = "KD",
     seed: int = 12,
     device_name: str | None = None,
+    data_root: str | Path | None = None,
+    bulk_unknown_split_csv: str | Path | None = None,
+    bulk_known_split_csv: str | Path | None = None,
+    phase0_split_csv: str | Path | None = None,
+    phase1_split_csv: str | Path | None = None,
+    phase2_split_csv: str | Path | None = None,
 ) -> dict[str, object]:
     output_root = Path(output_root)
     output_root.mkdir(parents=True, exist_ok=True)
@@ -30,6 +36,8 @@ def run_recipe_pipeline(
             output_dir=output_root / "module_a",
             seed=seed,
             device_name=device_name,
+            data_root=data_root,
+            split_csv=bulk_unknown_split_csv,
         )
     if "B" in normalized_modules:
         summary["B"] = run_bulk_module(
@@ -39,6 +47,8 @@ def run_recipe_pipeline(
             output_dir=output_root / "module_b",
             seed=seed,
             device_name=device_name,
+            data_root=data_root,
+            split_csv=bulk_known_split_csv,
         )
     if "C" in normalized_modules:
         module_b_checkpoint = output_root / "module_b" / "model.pth"
@@ -50,12 +60,17 @@ def run_recipe_pipeline(
             seed=seed,
             device_name=device_name,
             bulk_checkpoint_path=bulk_checkpoint_path,
+            data_root=data_root,
         )
     if "D" in normalized_modules:
         summary["D"] = run_single_cell_transfer(
             output_dir=output_root / "module_d",
             seed=seed,
             device_name=device_name,
+            data_root=data_root,
+            phase0_split_csv=phase0_split_csv,
+            phase1_split_csv=phase1_split_csv,
+            phase2_split_csv=phase2_split_csv,
         )
 
     return summary

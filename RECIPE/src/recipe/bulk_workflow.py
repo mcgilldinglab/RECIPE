@@ -16,7 +16,7 @@ from .bulk_regression import (
     predict_bulk_outputs,
     train_single_graph_bulk,
 )
-from .config import BulkTaskConfig, get_bulk_task_config
+from .config import BulkTaskConfig, get_bulk_task_config, with_bulk_input_paths
 from .models import RBULK
 from .utils import resolve_device, save_json, set_seed
 
@@ -34,8 +34,20 @@ def build_bulk_graph_for_task(
     task: str,
     condition_name: str,
     scale_method: str = "log_median",
+    data_root: str | Path | None = None,
+    reference_csv: str | Path | None = None,
+    sequence_npy: str | Path | None = None,
+    ppi_csv: str | Path | None = None,
+    pause_csv: str | Path | None = None,
 ) -> tuple[BulkTaskConfig, pd.DataFrame, Any, dict[str, Any]]:
-    config = get_bulk_task_config(task=task, species=species)
+    config = with_bulk_input_paths(
+        get_bulk_task_config(task=task, species=species),
+        data_root=data_root,
+        reference_csv=reference_csv,
+        sequence_npy=sequence_npy,
+        ppi_csv=ppi_csv,
+        pause_csv=pause_csv,
+    )
     condition = config.conditions[condition_name.upper()]
     bulk_df = load_bulk_dataframe(
         reference_csv_path=config.reference_csv,
@@ -65,6 +77,38 @@ def build_labeled_splits(target_tensor: torch.Tensor, seed: int) -> BulkSplitBun
     train_idx, val_idx, test_idx = split_index_tensor(torch.tensor(labeled_idx, dtype=torch.long), seed=seed)
     pool_idx = torch.tensor(unlabeled_idx, dtype=torch.long)
     return BulkSplitBundle(train_idx=train_idx, val_idx=val_idx, test_idx=test_idx, pool_idx=pool_idx)
+
+
+def load_labeled_splits_from_csv(split_csv: str | Path, node_count: int) -> BulkSplitBundle:
+    split_df = pd.read_csv(split_csv)
+    if "split" not in split_df.columns:
+        raise ValueError(f"Split CSV must include a 'split' column: {split_csv}")
+
+    if "node_index" in split_df.columns:
+        node_indices = split_df["node_index"].to_numpy(dtype=np.int64)
+    else:
+        node_indices = np.arange(len(split_df), dtype=np.int64)
+
+    if len(node_indices) != node_count:
+        raise ValueError(
+            f"Split CSV row count ({len(node_indices)}) does not match graph node count ({node_count})."
+        )
+    if node_indices.min(initial=0) < 0 or node_indices.max(initial=-1) >= node_count:
+        raise ValueError(f"Split CSV has node_index values outside 0..{node_count - 1}: {split_csv}")
+
+    split_labels = split_df["split"].astype(str).str.lower().to_numpy()
+
+    def _indices_for(label: str) -> torch.Tensor:
+        return torch.tensor(node_indices[split_labels == label], dtype=torch.long)
+
+    assigned_mask = np.isin(split_labels, ["train", "val", "test"])
+    pool_idx = torch.tensor(node_indices[~assigned_mask], dtype=torch.long)
+    return BulkSplitBundle(
+        train_idx=_indices_for("train"),
+        val_idx=_indices_for("val"),
+        test_idx=_indices_for("test"),
+        pool_idx=pool_idx,
+    )
 
 
 def load_model_state(model: torch.nn.Module, checkpoint_path: Path, device: torch.device) -> torch.nn.Module:
@@ -152,6 +196,12 @@ def run_bulk_module(
     patience: int = 200,
     log_every: int = 50,
     scale_method: str = "log_median",
+    data_root: str | Path | None = None,
+    reference_csv: str | Path | None = None,
+    sequence_npy: str | Path | None = None,
+    ppi_csv: str | Path | None = None,
+    pause_csv: str | Path | None = None,
+    split_csv: str | Path | None = None,
 ) -> dict[str, Any]:
     set_seed(seed)
     device = resolve_device(device_name)
@@ -162,8 +212,18 @@ def run_bulk_module(
         task=task,
         condition_name=condition_name,
         scale_method=scale_method,
+        data_root=data_root,
+        reference_csv=reference_csv,
+        sequence_npy=sequence_npy,
+        ppi_csv=ppi_csv,
+        pause_csv=pause_csv,
     )
-    splits = build_labeled_splits(data.y, seed=seed)
+    split_csv_path = Path(split_csv).expanduser().resolve() if split_csv else None
+    splits = (
+        load_labeled_splits_from_csv(split_csv_path, node_count=int(data.num_nodes))
+        if split_csv_path
+        else build_labeled_splits(data.y, seed=seed)
+    )
     model = make_bulk_model(data, device=device)
     data = data.to(device)
 
@@ -210,6 +270,13 @@ def run_bulk_module(
         "test_metrics": test_metrics,
         "scaling": scaling_summary,
         "training": training_summary,
+        "inputs": {
+            "reference_csv": str(config.reference_csv),
+            "sequence_npy": str(config.sequence_npy),
+            "ppi_csv": str(config.ppi_csv),
+            "pause_csv": str(config.pause_csv) if config.pause_csv else None,
+            "split_csv": str(split_csv_path) if split_csv_path else None,
+        },
     }
     output_files = save_bulk_outputs(
         output_dir=output_dir,

@@ -28,7 +28,7 @@ from .bulk_data import (
 )
 from .bulk_regression import build_bulk_graph_from_dataframe, predict_bulk_outputs, train_single_graph_bulk
 from .bulk_regression import BulkConditionSpec
-from .config import SINGLE_CELL_TRANSFER_CONFIG, SingleCellTransferConfig
+from .config import SINGLE_CELL_TRANSFER_CONFIG, SingleCellTransferConfig, with_single_cell_input_paths
 from .models import RBULK, RSCHead
 from .self_learning import run_self_learning
 from .single_cell import (
@@ -68,15 +68,17 @@ def _phase1_ordered_table(config: SingleCellTransferConfig) -> pd.DataFrame:
     ordered_df = load_ordered_cds_table(config.cds_csv, config.transcript_order_csv)
     ordered_df = merge_single_pause_file(
         ordered_df,
-        config.phase0_pause_csv.parent / "fraction_rich_pause.csv",
+        config.phase1_pause_csv,
         "phase1_pause",
         merge_on="transcript_id",
     )
     return ordered_df
 
 
-def _build_notebook_phase0_data(seed: int) -> tuple[Data, dict[str, Any], pd.DataFrame, pd.DataFrame, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    config = SINGLE_CELL_TRANSFER_CONFIG
+def _build_notebook_phase0_data(
+    seed: int,
+    config: SingleCellTransferConfig,
+) -> tuple[Data, dict[str, Any], pd.DataFrame, pd.DataFrame, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     raw_cds_csv = config.cds_csv
     raw_order_csv = config.transcript_order_csv
     raw_bulk_reference_csv = config.bulk_reference_csv
@@ -342,7 +344,7 @@ def _build_notebook_phase1_data(config: SingleCellTransferConfig) -> tuple[Data,
     raw_expression_csv = config.expression_csv
     raw_meta_csv = config.metadata_csv
     raw_pause_base_csv = config.pause_matrix_csv
-    raw_pause_rich_csv = config.phase0_pause_csv.parent / "fraction_rich_pause.csv"
+    raw_pause_rich_csv = config.phase1_pause_csv
     raw_cds_csv = config.cds_csv
     raw_order_csv = config.transcript_order_csv
     raw_bulk_reference_csv = config.bulk_reference_csv
@@ -423,6 +425,44 @@ def _valid_gene_splits(label_values: np.ndarray, seed: int) -> tuple[np.ndarray,
     train_ids, temp_ids = train_test_split(valid_gene_ids, test_size=0.25, random_state=seed)
     val_ids, test_ids = train_test_split(temp_ids, test_size=0.5, random_state=seed)
     return np.asarray(train_ids), np.asarray(val_ids), np.asarray(test_ids)
+
+
+def _split_arrays_from_csv(split_csv: str | Path, node_count: int) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    split_df = pd.read_csv(split_csv)
+    if "split" not in split_df.columns:
+        raise ValueError(f"Split CSV must include a 'split' column: {split_csv}")
+
+    if "node_index" in split_df.columns:
+        node_indices = split_df["node_index"].to_numpy(dtype=np.int64)
+    else:
+        node_indices = np.arange(len(split_df), dtype=np.int64)
+
+    if len(node_indices) != node_count:
+        raise ValueError(
+            f"Split CSV row count ({len(node_indices)}) does not match gene count ({node_count})."
+        )
+    if node_indices.min(initial=0) < 0 or node_indices.max(initial=-1) >= node_count:
+        raise ValueError(f"Split CSV has node_index values outside 0..{node_count - 1}: {split_csv}")
+
+    split_labels = split_df["split"].astype(str).str.lower().to_numpy()
+    assigned_mask = np.isin(split_labels, ["train", "val", "test"])
+    return (
+        node_indices[split_labels == "train"],
+        node_indices[split_labels == "val"],
+        node_indices[split_labels == "test"],
+        node_indices[~assigned_mask],
+    )
+
+
+def _split_masks_from_csv(split_csv: str | Path, node_count: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    train_idx, val_idx, test_idx, _ = _split_arrays_from_csv(split_csv, node_count=node_count)
+    train_mask = torch.zeros(node_count, dtype=torch.bool)
+    val_mask = torch.zeros(node_count, dtype=torch.bool)
+    test_mask = torch.zeros(node_count, dtype=torch.bool)
+    train_mask[torch.tensor(train_idx, dtype=torch.long)] = True
+    val_mask[torch.tensor(val_idx, dtype=torch.long)] = True
+    test_mask[torch.tensor(test_idx, dtype=torch.long)] = True
+    return train_mask, val_mask, test_mask
 
 
 def _iterate_gene_batches(gene_ids: np.ndarray, batch_size: int, shuffle: bool) -> list[np.ndarray]:
@@ -582,8 +622,10 @@ def run_single_cell_phase0(
     pseudo_labels_per_round: int = 256,
     notebook_style_data: bool = False,
     notebook_exact_training: bool = False,
+    config: SingleCellTransferConfig | None = None,
+    split_csv: str | Path | None = None,
 ) -> dict[str, Any]:
-    config = SINGLE_CELL_TRANSFER_CONFIG
+    config = config or SINGLE_CELL_TRANSFER_CONFIG
     set_seed(seed)
     device = resolve_device(device_name)
     output_dir = Path(output_dir)
@@ -591,7 +633,9 @@ def run_single_cell_phase0(
     print(f"[Phase0] seed={seed}, device={device}, output_dir={output_dir}")
 
     if notebook_style_data:
-        data, scaling_summary, ordered_df, reference_df, train_idx, val_idx, test_idx, pool_idx = _build_notebook_phase0_data(seed)
+        data, scaling_summary, ordered_df, reference_df, train_idx, val_idx, test_idx, pool_idx = _build_notebook_phase0_data(seed, config)
+        if split_csv:
+            train_idx, val_idx, test_idx, pool_idx = _split_arrays_from_csv(split_csv, node_count=int(data.num_nodes))
     else:
         ordered_df = _phase0_ordered_table(config)
         reference_df = load_bulk_reference_table(config.bulk_reference_csv)
@@ -613,8 +657,11 @@ def run_single_cell_phase0(
         )
 
         target_values = ordered_df[config.phase0_target_col].to_numpy(dtype=np.float32)
-        train_idx, val_idx, test_idx = _valid_gene_splits(target_values, seed=seed)
-        pool_idx = np.where(np.isclose(target_values, 0.0))[0]
+        if split_csv:
+            train_idx, val_idx, test_idx, pool_idx = _split_arrays_from_csv(split_csv, node_count=int(data.num_nodes))
+        else:
+            train_idx, val_idx, test_idx = _valid_gene_splits(target_values, seed=seed)
+            pool_idx = np.where(np.isclose(target_values, 0.0))[0]
 
     model = RBULK(sequence_dim=int(data.seq.shape[1])).to(device)
     data = data.to(device)
@@ -761,6 +808,18 @@ def run_single_cell_phase0(
         "training": training_summary,
         "self_learning": self_learning_summary,
         "scaling": scaling_summary,
+        "inputs": {
+            "bulk_reference_csv": str(config.bulk_reference_csv),
+            "transcript_order_csv": str(config.transcript_order_csv),
+            "sequence_npy": str(config.sequence_npy),
+            "ppi_csv": str(config.ppi_csv),
+            "cds_csv": str(config.cds_csv),
+            "phase0_pause_csv": str(config.phase0_pause_csv),
+            "expression_normalized_csv": str(config.expression_normalized_csv),
+            "metadata_csv": str(config.metadata_csv),
+            "pause_matrix_csv": str(config.pause_matrix_csv),
+            "split_csv": str(Path(split_csv).expanduser().resolve()) if split_csv else None,
+        },
         "outputs": outputs,
     }
     save_json(output_dir / "phase0_summary.json", summary)
@@ -778,14 +837,18 @@ def run_single_cell_phase1(
     max_epochs: int = 1000,
     patience: int = 100,
     rich_fraction_label: str = "Rich",
+    config: SingleCellTransferConfig | None = None,
+    split_csv: str | Path | None = None,
 ) -> dict[str, Any]:
-    config = SINGLE_CELL_TRANSFER_CONFIG
+    config = config or SINGLE_CELL_TRANSFER_CONFIG
     set_seed(seed)
     device = resolve_device(device_name)
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     print(f"[Phase1] seed={seed}, device={device}, output_dir={output_dir}")
     data, scaling_summary, selected_cell_count, ordered_df = _build_notebook_phase1_data(config)
+    if split_csv:
+        data.train_mask, data.val_mask, data.test_mask = _split_masks_from_csv(split_csv, node_count=int(data.num_nodes))
     data = data.to(device)
 
     model = RBULK(sequence_dim=int(data.seq.shape[1])).to(device)
@@ -909,6 +972,19 @@ def run_single_cell_phase1(
         "val_metrics": {"loss": val_loss, "r2": val_r2},
         "test_metrics": {"loss": test_loss, "r2": test_r2},
         "scaling": scaling_summary,
+        "inputs": {
+            "expression_csv": str(config.expression_csv),
+            "metadata_csv": str(config.metadata_csv),
+            "pause_matrix_csv": str(config.pause_matrix_csv),
+            "phase1_pause_csv": str(config.phase1_pause_csv),
+            "cds_csv": str(config.cds_csv),
+            "transcript_order_csv": str(config.transcript_order_csv),
+            "bulk_reference_csv": str(config.bulk_reference_csv),
+            "sequence_npy": str(config.sequence_npy),
+            "ppi_csv": str(config.ppi_csv),
+            "phase0_checkpoint": str(phase0_checkpoint_path),
+            "split_csv": str(Path(split_csv).expanduser().resolve()) if split_csv else None,
+        },
         "outputs": {
             "model": str(checkpoint),
             "predictions": str(prediction_csv),
@@ -931,6 +1007,7 @@ def run_single_cell_phase0_seed_sweep(
     self_learning_rounds: int = 100,
     pseudo_labels_per_round: int = 300,
     notebook_style_data: bool = True,
+    config: SingleCellTransferConfig | None = None,
 ) -> dict[str, Any]:
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -949,6 +1026,7 @@ def run_single_cell_phase0_seed_sweep(
             self_learning_rounds=self_learning_rounds,
             pseudo_labels_per_round=pseudo_labels_per_round,
             notebook_style_data=notebook_style_data,
+            config=config,
         )
 
     summary = {
@@ -978,8 +1056,10 @@ def run_single_cell_phase2(
     n_neighbors: int = 3,
     n_pcs: int = 50,
     rich_fraction_label: str = "Rich",
+    config: SingleCellTransferConfig | None = None,
+    split_csv: str | Path | None = None,
 ) -> dict[str, Any]:
-    config = SINGLE_CELL_TRANSFER_CONFIG
+    config = config or SINGLE_CELL_TRANSFER_CONFIG
     set_seed(seed)
     device = resolve_device(device_name)
     output_dir = Path(output_dir)
@@ -999,9 +1079,12 @@ def run_single_cell_phase2(
     label_values = np.log2((ordered_df[[config.phase0_target_col]].values / target_median) + 1.0).reshape(-1)
     label_tensor = torch.tensor(label_values, dtype=torch.float32, device=device)
 
-    valid_gene_ids = np.where(label_values != 0)[0]
-    train_ids, temp_ids = train_test_split(valid_gene_ids, test_size=0.25, random_state=42)
-    test_ids, val_ids = train_test_split(temp_ids, test_size=0.5, random_state=42)
+    if split_csv:
+        train_ids, val_ids, test_ids, _ = _split_arrays_from_csv(split_csv, node_count=len(label_values))
+    else:
+        valid_gene_ids = np.where(label_values != 0)[0]
+        train_ids, temp_ids = train_test_split(valid_gene_ids, test_size=0.25, random_state=42)
+        test_ids, val_ids = train_test_split(temp_ids, test_size=0.5, random_state=42)
 
     phase1_bulk_model = RBULK(sequence_dim=int(np.load(config.sequence_npy).shape[1])).to(device)
     print(f"[Phase2] loading phase1 checkpoint: {phase1_checkpoint_path}")
@@ -1149,6 +1232,18 @@ def run_single_cell_phase2(
         "cell_count": int(predicted_matrix.shape[0]),
         "gene_count": int(predicted_matrix.shape[1]),
         "best_epoch": int(best_epoch),
+        "inputs": {
+            "expression_normalized_csv": str(config.expression_normalized_csv),
+            "metadata_csv": str(config.metadata_csv),
+            "cds_csv": str(config.cds_csv),
+            "transcript_order_csv": str(config.transcript_order_csv),
+            "bulk_reference_csv": str(config.bulk_reference_csv),
+            "sequence_npy": str(config.sequence_npy),
+            "ppi_csv": str(config.ppi_csv),
+            "pause_matrix_csv": str(config.pause_matrix_csv),
+            "phase1_checkpoint": str(phase1_checkpoint_path),
+            "split_csv": str(Path(split_csv).expanduser().resolve()) if split_csv else None,
+        },
         "outputs": {
             "model": str(checkpoint),
             "cell_embeddings": str(output_dir / "phase2_cell_embeddings.npy"),
@@ -1173,7 +1268,39 @@ def run_single_cell_transfer(
     train_phase0: bool = False,
     train_phase1: bool = False,
     train_phase2: bool = False,
+    data_root: str | Path | None = None,
+    bulk_reference_csv: str | Path | None = None,
+    transcript_order_csv: str | Path | None = None,
+    sequence_npy: str | Path | None = None,
+    ppi_csv: str | Path | None = None,
+    cds_csv: str | Path | None = None,
+    phase0_pause_csv: str | Path | None = None,
+    phase1_pause_csv: str | Path | None = None,
+    expression_csv: str | Path | None = None,
+    expression_normalized_csv: str | Path | None = None,
+    metadata_csv: str | Path | None = None,
+    pause_matrix_csv: str | Path | None = None,
+    phase0_init_checkpoint: str | Path | None = None,
+    phase0_split_csv: str | Path | None = None,
+    phase1_split_csv: str | Path | None = None,
+    phase2_split_csv: str | Path | None = None,
 ) -> dict[str, Any]:
+    config = with_single_cell_input_paths(
+        SINGLE_CELL_TRANSFER_CONFIG,
+        data_root=data_root,
+        bulk_reference_csv=bulk_reference_csv,
+        transcript_order_csv=transcript_order_csv,
+        sequence_npy=sequence_npy,
+        ppi_csv=ppi_csv,
+        cds_csv=cds_csv,
+        phase0_pause_csv=phase0_pause_csv,
+        phase1_pause_csv=phase1_pause_csv,
+        expression_csv=expression_csv,
+        expression_normalized_csv=expression_normalized_csv,
+        metadata_csv=metadata_csv,
+        pause_matrix_csv=pause_matrix_csv,
+        phase0_init_checkpoint=phase0_init_checkpoint,
+    )
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     print(f"[Transfer] steps={steps}, seed={seed}, output_dir={output_dir}")
@@ -1193,6 +1320,8 @@ def run_single_cell_transfer(
             seed=seed,
             device_name=device_name,
             train=train_phase0,
+            config=config,
+            split_csv=phase0_split_csv,
         )
     if "phase1" in steps:
         phase0_checkpoint_path = (
@@ -1206,6 +1335,8 @@ def run_single_cell_transfer(
             seed=seed,
             device_name=device_name,
             train=train_phase1,
+            config=config,
+            split_csv=phase1_split_csv,
         )
     if "phase2" in steps:
         phase1_checkpoint_path = (
@@ -1219,10 +1350,29 @@ def run_single_cell_transfer(
             seed=seed,
             device_name=device_name,
             train=train_phase2,
+            config=config,
+            split_csv=phase2_split_csv,
         )
 
     summary = {
         "steps": list(steps),
+        "inputs": {
+            "bulk_reference_csv": str(config.bulk_reference_csv),
+            "transcript_order_csv": str(config.transcript_order_csv),
+            "sequence_npy": str(config.sequence_npy),
+            "ppi_csv": str(config.ppi_csv),
+            "cds_csv": str(config.cds_csv),
+            "phase0_pause_csv": str(config.phase0_pause_csv),
+            "phase1_pause_csv": str(config.phase1_pause_csv),
+            "expression_csv": str(config.expression_csv),
+            "expression_normalized_csv": str(config.expression_normalized_csv),
+            "metadata_csv": str(config.metadata_csv),
+            "pause_matrix_csv": str(config.pause_matrix_csv),
+            "phase0_init_checkpoint": str(config.phase0_init_checkpoint) if config.phase0_init_checkpoint else None,
+            "phase0_split_csv": str(Path(phase0_split_csv).expanduser().resolve()) if phase0_split_csv else None,
+            "phase1_split_csv": str(Path(phase1_split_csv).expanduser().resolve()) if phase1_split_csv else None,
+            "phase2_split_csv": str(Path(phase2_split_csv).expanduser().resolve()) if phase2_split_csv else None,
+        },
         "phase0": phase0_summary,
         "phase1": phase1_summary,
         "phase2": phase2_summary,

@@ -18,6 +18,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, default=12)
     parser.add_argument("--device", default="auto")
     parser.add_argument("--bulk-checkpoint-path", default=None)
+    parser.add_argument("--data-root", default=None, help="Directory containing RECIPE data subfolders.")
+    parser.add_argument("--reference-csv", default=None, help="Bulk reference CSV used by the known-protein model.")
+    parser.add_argument("--sequence-npy", default=None, help="Sequence embedding NPY used by the known-protein model.")
+    parser.add_argument("--ppi-csv", default=None, help="Known PPI adjacency CSV.")
+    parser.add_argument("--coexpression-csv", default=None, help="Optional coexpression CSV for edge-score summaries.")
     parser.add_argument("--edge-max-epochs", type=int, default=1000)
     parser.add_argument("--edge-patience", type=int, default=50)
     parser.add_argument("--threshold", type=float, default=0.8)
@@ -38,6 +43,11 @@ def main() -> None:
         edge_patience=args.edge_patience,
         threshold=args.threshold,
         export_score_matrix=args.export_score_matrix,
+        data_root=args.data_root,
+        reference_csv=args.reference_csv,
+        sequence_npy=args.sequence_npy,
+        ppi_csv=args.ppi_csv,
+        coexpression_csv=args.coexpression_csv,
     )
     print(json.dumps(summary, indent=2, ensure_ascii=False))
 

@@ -7,10 +7,8 @@ import numpy as np
 import pandas as pd
 import torch
 
-from .assets import NETWORK_DATA_DIR
 from .bulk_regression import predict_bulk_outputs
 from .bulk_workflow import build_bulk_graph_for_task, load_model_state, make_bulk_model
-from .config import get_bulk_task_config
 from .models import RBULK
 from .ppi_inference import (
     infer_candidate_edges,
@@ -65,18 +63,26 @@ def run_ppi_refinement(
     threshold: float = 0.8,
     export_score_matrix: bool = False,
     log_every: int = 10,
+    data_root: str | Path | None = None,
+    reference_csv: str | Path | None = None,
+    sequence_npy: str | Path | None = None,
+    ppi_csv: str | Path | None = None,
+    coexpression_csv: str | Path | None = None,
 ) -> dict[str, Any]:
     set_seed(seed)
     device = resolve_device(device_name)
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    config = get_bulk_task_config(task="known", species=species)
-    _, bulk_df, data, scaling_summary = build_bulk_graph_for_task(
+    config, _, data, scaling_summary = build_bulk_graph_for_task(
         species=species,
         task="known",
         condition_name=condition_name,
         scale_method="log_median",
+        data_root=data_root,
+        reference_csv=reference_csv,
+        sequence_npy=sequence_npy,
+        ppi_csv=ppi_csv,
     )
     model: RBULK = make_bulk_model(data, device=device)
     checkpoint = Path(bulk_checkpoint_path) if bulk_checkpoint_path else config.default_checkpoint
@@ -135,7 +141,11 @@ def run_ppi_refinement(
     if score_matrix is not None:
         save_score_matrix(output_dir / "edge_score_matrix.npy", score_matrix)
 
-    coexpression_csv = NETWORK_DATA_DIR / f"{species.lower()}_coexpression.csv"
+    coexpression_path = (
+        Path(coexpression_csv).expanduser().resolve()
+        if coexpression_csv
+        else config.ppi_csv.with_name(f"{species.lower()}_coexpression.csv")
+    )
     summary = {
         "species": species,
         "condition": condition_name.upper(),
@@ -147,9 +157,16 @@ def run_ppi_refinement(
         "candidate_edge_count": int(new_edges.size(1)),
         "mean_positive_edge_score": float(positive_scores.mean().item()) if positive_scores.numel() else float("nan"),
         "mean_candidate_edge_score": float(new_scores.mean().item()) if new_scores.numel() else float("nan"),
-        "coexpression_known": _coexpression_summary(coexpression_csv, positive_edges),
-        "coexpression_candidates": _coexpression_summary(coexpression_csv, new_edges),
+        "coexpression_known": _coexpression_summary(coexpression_path, positive_edges),
+        "coexpression_candidates": _coexpression_summary(coexpression_path, new_edges),
         "scaling": scaling_summary,
+        "inputs": {
+            "reference_csv": str(config.reference_csv),
+            "sequence_npy": str(config.sequence_npy),
+            "ppi_csv": str(config.ppi_csv),
+            "bulk_checkpoint": str(checkpoint),
+            "coexpression_csv": str(coexpression_path),
+        },
         "outputs": {
             "edge_model": str(edge_model_path),
             "known_edge_scores": str(known_edge_score_csv),

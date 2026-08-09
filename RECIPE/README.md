@@ -65,12 +65,7 @@ The Python package lives in the repository subdirectory `RECIPE/`:
 python -m pip install "git+https://github.com/mcgilldinglab/RECIPE.git@main#subdirectory=RECIPE"
 ```
 
-If you install this way and keep data outside site-packages, point RECIPE to the data and checkpoint directories:
-
-```bash
-export RECIPE_DATA_ROOT=/path/to/RECIPE/RECIPE/data
-export RECIPE_MODEL_ROOT=/path/to/RECIPE/RECIPE/models
-```
+If you install this way and keep data outside site-packages, pass the data location when running a workflow, for example with `--data-root /path/to/RECIPE/RECIPE/data` or with the file-level arguments shown below.
 
 ## Data
 
@@ -129,13 +124,16 @@ After cloning the repository, run commands from the package directory:
 ```bash
 git lfs install
 git lfs pull
-export RECIPE_DATA_ROOT="${PWD}/data"
-export RECIPE_MODEL_ROOT="${PWD}/models"
-export RECIPE_OUTPUT_ROOT="${PWD}/outputs"
 python -m pip install -e . --no-deps
 ```
 
-These environment variables make the input and output locations explicit. All paths below are relative to `${RECIPE_DATA_ROOT}` unless noted otherwise.
+Set these paths to the data, model, and output locations on your machine:
+
+```bash
+DATA_ROOT="${PWD}/data"
+MODEL_ROOT="${PWD}/models"
+OUTPUT_ROOT="${PWD}/outputs/reproduce"
+```
 
 For a minimal check:
 
@@ -152,7 +150,11 @@ python scripts/run_module_a.py \
   --condition KD \
   --seed 12 \
   --device auto \
-  --output-dir outputs/reproduce/module_a_mouse_unknown
+  --reference-csv "${DATA_ROOT}/bulk/mouse_reference.csv" \
+  --sequence-npy "${DATA_ROOT}/bulk/mouse_sequence_unknown.npy" \
+  --ppi-csv "${DATA_ROOT}/networks/mouse_ppi_unknown.csv" \
+  --split-csv "${DATA_ROOT}/splits/bulk_mouse_unknown_seed12.csv" \
+  --output-dir "${OUTPUT_ROOT}/module_a_mouse_unknown"
 
 # Module B: bulk mouse known protein prediction
 python scripts/run_module_b.py \
@@ -160,7 +162,11 @@ python scripts/run_module_b.py \
   --condition KD \
   --seed 12 \
   --device auto \
-  --output-dir outputs/reproduce/module_b_mouse_known
+  --reference-csv "${DATA_ROOT}/bulk/mouse_reference.csv" \
+  --sequence-npy "${DATA_ROOT}/bulk/mouse_sequence_known.npy" \
+  --ppi-csv "${DATA_ROOT}/networks/mouse_ppi_known.csv" \
+  --split-csv "${DATA_ROOT}/splits/bulk_mouse_known_seed12.csv" \
+  --output-dir "${OUTPUT_ROOT}/module_b_mouse_known"
 
 # Module C: PPI refinement; run Module B first
 python scripts/run_module_c.py \
@@ -168,15 +174,34 @@ python scripts/run_module_c.py \
   --condition KD \
   --seed 12 \
   --device auto \
-  --bulk-checkpoint-path outputs/reproduce/module_b_mouse_known/model.pth \
-  --output-dir outputs/reproduce/module_c_mouse_ppi
+  --reference-csv "${DATA_ROOT}/bulk/mouse_reference.csv" \
+  --sequence-npy "${DATA_ROOT}/bulk/mouse_sequence_known.npy" \
+  --ppi-csv "${DATA_ROOT}/networks/mouse_ppi_known.csv" \
+  --coexpression-csv "${DATA_ROOT}/networks/mouse_coexpression.csv" \
+  --bulk-checkpoint-path "${OUTPUT_ROOT}/module_b_mouse_known/model.pth" \
+  --output-dir "${OUTPUT_ROOT}/module_c_mouse_ppi"
 
 # Module D: single-cell transfer
 python scripts/run_module_d.py \
   --steps phase0,phase1,phase2 \
   --seed 12 \
   --device auto \
-  --output-dir outputs/reproduce/module_d_single_cell
+  --bulk-reference-csv "${DATA_ROOT}/bulk/human_reference.csv" \
+  --transcript-order-csv "${DATA_ROOT}/single_cell/expression_normalized.csv" \
+  --sequence-npy "${DATA_ROOT}/bulk/single_cell_transfer_sequence.npy" \
+  --ppi-csv "${DATA_ROOT}/networks/single_cell_transfer_ppi.csv" \
+  --cds-csv "${DATA_ROOT}/pausing/cds_annotations.csv" \
+  --phase0-pause-csv "${DATA_ROOT}/pausing/human_nc2_pause.csv" \
+  --phase1-pause-csv "${DATA_ROOT}/pausing/fraction_rich_pause.csv" \
+  --expression-csv "${DATA_ROOT}/single_cell/expression_raw.csv" \
+  --expression-normalized-csv "${DATA_ROOT}/single_cell/expression_normalized.csv" \
+  --metadata-csv "${DATA_ROOT}/single_cell/metadata.csv" \
+  --pause-matrix-csv "${DATA_ROOT}/pausing/pseudobulk_pause_matrix.csv" \
+  --phase0-init-checkpoint "${MODEL_ROOT}/single_cell/bulk_self_learning.pth" \
+  --phase0-split-csv "${DATA_ROOT}/splits/single_cell_self_learning_seed12.csv" \
+  --phase1-split-csv "${DATA_ROOT}/splits/single_cell_module_a_seed42.csv" \
+  --phase2-split-csv "${DATA_ROOT}/splits/single_cell_graph_seed42.csv" \
+  --output-dir "${OUTPUT_ROOT}/module_d_single_cell"
 ```
 
 To run all modules in order:
@@ -188,77 +213,23 @@ python scripts/run_recipe.py \
   --condition KD \
   --seed 12 \
   --device auto \
-  --output-root outputs/reproduce/all_modules
+  --data-root "${DATA_ROOT}" \
+  --bulk-unknown-split-csv "${DATA_ROOT}/splits/bulk_mouse_unknown_seed12.csv" \
+  --bulk-known-split-csv "${DATA_ROOT}/splits/bulk_mouse_known_seed12.csv" \
+  --phase0-split-csv "${DATA_ROOT}/splits/single_cell_self_learning_seed12.csv" \
+  --phase1-split-csv "${DATA_ROOT}/splits/single_cell_module_a_seed42.csv" \
+  --phase2-split-csv "${DATA_ROOT}/splits/single_cell_graph_seed42.csv" \
+  --output-root "${OUTPUT_ROOT}/all_modules"
 ```
 
-When Module B and Module C are run together through `run_recipe.py`, Module C uses the Module B checkpoint at `outputs/reproduce/all_modules/module_b/model.pth`. Detailed commands and expected output files are also listed in `docs/reproduction.md`.
+When Module B and Module C are run together through `run_recipe.py`, Module C uses the Module B checkpoint at `${OUTPUT_ROOT}/all_modules/module_b/model.pth`. Detailed commands and expected output files are also listed in `docs/reproduction.md`.
 
 Input data used by the commands above:
 
 - Module A: `bulk/mouse_reference.csv`, `bulk/mouse_sequence_unknown.npy`, `networks/mouse_ppi_unknown.csv`, with split reference `splits/bulk_mouse_unknown_seed12.csv`.
 - Module B: `bulk/mouse_reference.csv`, `bulk/mouse_sequence_known.npy`, `networks/mouse_ppi_known.csv`, with split reference `splits/bulk_mouse_known_seed12.csv`.
-- Module C: Module B checkpoint `outputs/reproduce/module_b_mouse_known/model.pth`, plus `bulk/mouse_reference.csv`, `bulk/mouse_sequence_known.npy`, and `networks/mouse_ppi_known.csv`.
-- Module D: `bulk/human_reference.csv`, `bulk/single_cell_transfer_sequence.npy`, `networks/single_cell_transfer_ppi.csv`, `pausing/cds_annotations.csv`, `pausing/human_nc2_pause.csv`, `pausing/pseudobulk_pause_matrix.csv`, `single_cell/expression_raw.csv`, `single_cell/expression_normalized.csv`, and `single_cell/metadata.csv`.
-
-## Direct Commands
-
-Module A, mouse unknown benchmark based on the notebook-mapped dataset:
-
-```bash
-python scripts/run_module_a.py \
-  --species mouse \
-  --condition KD \
-  --output-dir outputs/module_a_mouse_unknown \
-  --device auto
-```
-
-Module B, mouse known benchmark:
-
-```bash
-python scripts/run_module_b.py \
-  --species mouse \
-  --condition KD \
-  --output-dir outputs/module_b_mouse_known \
-  --device auto
-```
-
-Module C, PPI refinement after a bulk checkpoint exists:
-
-```bash
-python scripts/run_module_b.py \
-  --species mouse \
-  --condition KD \
-  --output-dir outputs/module_b_mouse_known \
-  --device auto \
-  --train
-
-python scripts/run_module_c.py \
-  --species mouse \
-  --condition KD \
-  --output-dir outputs/module_c_mouse_ppi \
-  --bulk-checkpoint-path outputs/module_b_mouse_known/model.pth \
-  --device auto
-```
-
-Module D, single-cell transfer:
-
-```bash
-python scripts/run_module_d.py \
-  --steps phase0,phase1,phase2 \
-  --output-dir outputs/module_d \
-  --device auto
-```
-
-Combined pipeline:
-
-```bash
-python scripts/run_recipe.py \
-  --modules A,B,C,D \
-  --species mouse \
-  --condition KD \
-  --output-root outputs/pipeline \
-  --device auto
-```
+- Module C: Module B checkpoint `${OUTPUT_ROOT}/module_b_mouse_known/model.pth`, plus `bulk/mouse_reference.csv`, `bulk/mouse_sequence_known.npy`, `networks/mouse_ppi_known.csv`, and `networks/mouse_coexpression.csv`.
+- Module D: `bulk/human_reference.csv`, `bulk/single_cell_transfer_sequence.npy`, `networks/single_cell_transfer_ppi.csv`, `pausing/cds_annotations.csv`, `pausing/human_nc2_pause.csv`, `pausing/fraction_rich_pause.csv`, `pausing/pseudobulk_pause_matrix.csv`, `single_cell/expression_raw.csv`, `single_cell/expression_normalized.csv`, `single_cell/metadata.csv`, and the three `splits/single_cell_*.csv` files.
 
 ## Outputs
 
@@ -288,6 +259,8 @@ For bulk workflows, prepare:
 - A square PPI adjacency CSV whose dimensions match the number of reference rows.
 
 Use the existing workflow code directly if your column names match one of the packaged configs, or build a custom `BulkConditionSpec` and call `build_bulk_graph_from_dataframe`.
+
+For command-line use, pass these files directly with `--reference-csv`, `--sequence-npy`, `--ppi-csv`, and optionally `--split-csv`. For a data directory that mirrors the packaged `data/` layout, pass `--data-root /path/to/data`.
 
 ## Reproduction Notes
 

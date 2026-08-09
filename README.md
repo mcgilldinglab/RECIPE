@@ -26,11 +26,11 @@ git lfs install
 git clone https://github.com/mcgilldinglab/RECIPE.git
 cd RECIPE/RECIPE
 git lfs pull
-export RECIPE_DATA_ROOT="${PWD}/data"
-export RECIPE_MODEL_ROOT="${PWD}/models"
-export RECIPE_OUTPUT_ROOT="${PWD}/outputs"
 python -m pip install -e . --no-deps
-python scripts/run_smoke_demo.py --device cpu --output-dir outputs/smoke_demo
+python scripts/run_smoke_demo.py \
+  --data-dir examples/smoke_data \
+  --device cpu \
+  --output-dir outputs/smoke_demo
 ```
 
 The smoke demo should finish in under 1 minute on a normal desktop or workstation.

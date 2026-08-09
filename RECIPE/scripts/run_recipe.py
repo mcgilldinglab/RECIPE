@@ -18,6 +18,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-root", required=True)
     parser.add_argument("--seed", type=int, default=12)
     parser.add_argument("--device", default="auto")
+    parser.add_argument("--data-root", default=None, help="Directory containing RECIPE data subfolders.")
+    parser.add_argument("--bulk-unknown-split-csv", default=None)
+    parser.add_argument("--bulk-known-split-csv", default=None)
+    parser.add_argument("--phase0-split-csv", default=None)
+    parser.add_argument("--phase1-split-csv", default=None)
+    parser.add_argument("--phase2-split-csv", default=None)
     return parser
 
 
@@ -31,6 +37,12 @@ def main() -> None:
         condition=args.condition,
         seed=args.seed,
         device_name=args.device,
+        data_root=args.data_root,
+        bulk_unknown_split_csv=args.bulk_unknown_split_csv,
+        bulk_known_split_csv=args.bulk_known_split_csv,
+        phase0_split_csv=args.phase0_split_csv,
+        phase1_split_csv=args.phase1_split_csv,
+        phase2_split_csv=args.phase2_split_csv,
     )
     print(json.dumps(summary, indent=2, ensure_ascii=False))
 

@@ -19,6 +19,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--device", default="auto")
     parser.add_argument("--train", action="store_true", help="Force model training even if a checkpoint exists.")
     parser.add_argument("--checkpoint-path", default=None)
+    parser.add_argument("--data-root", default=None, help="Directory containing RECIPE data subfolders.")
+    parser.add_argument("--reference-csv", default=None, help="Bulk reference CSV.")
+    parser.add_argument("--sequence-npy", default=None, help="Sequence embedding NPY.")
+    parser.add_argument("--ppi-csv", default=None, help="PPI adjacency CSV.")
+    parser.add_argument("--pause-csv", default=None, help="Optional pausing CSV.")
+    parser.add_argument("--split-csv", default=None, help="Optional fixed train/val/test split CSV.")
     parser.add_argument("--max-epochs", type=int, default=3000)
     parser.add_argument("--patience", type=int, default=200)
     parser.add_argument("--learning-rate", type=float, default=7e-2)
@@ -36,6 +42,12 @@ def main() -> None:
         device_name=args.device,
         train=args.train,
         checkpoint_path=args.checkpoint_path,
+        data_root=args.data_root,
+        reference_csv=args.reference_csv,
+        sequence_npy=args.sequence_npy,
+        ppi_csv=args.ppi_csv,
+        pause_csv=args.pause_csv,
+        split_csv=args.split_csv,
         max_epochs=args.max_epochs,
         patience=args.patience,
         learning_rate=args.learning_rate,
