@@ -1,6 +1,6 @@
 # Reproduction Commands
 
-This page lists the commands a new user can run after cloning the repository.
+Use this page as the canonical command list for reproducing the public RECIPE tasks.
 
 ## Clone And Install
 
@@ -16,7 +16,7 @@ python -m pip install -e . --no-deps
 
 Use the fresh-environment instructions in `installation.md` if PyTorch and PyTorch Geometric are not already installed.
 
-Set these shell variables to the locations on your machine. The example below uses the packaged repository data, but the same commands work if `DATA_ROOT` points to another directory with the same files.
+Set these paths for your local checkout. `DATA_ROOT` may point to the repository data directory or to another directory with the same file layout.
 
 ```bash
 DATA_ROOT="${PWD}/data"
@@ -26,7 +26,7 @@ OUTPUT_ROOT="${PWD}/outputs/reproduce"
 
 ## Data Preparation
 
-Materialize Git LFS files, prepare derived inputs, and verify the files used by the public tasks:
+Download Git LFS files, create derived inputs when needed, and check that the reproduction files are present:
 
 ```bash
 git lfs pull
@@ -35,7 +35,7 @@ python scripts/prepare_public_data.py \
   --manifest-json "${OUTPUT_ROOT}/data_preparation.json"
 ```
 
-For the full Module C coexpression summary, also build the mouse coexpression matrix. This creates a large CSV file under `${DATA_ROOT}/networks/`.
+For the Module C coexpression summary, build the mouse coexpression matrix. This creates a large CSV file under `${DATA_ROOT}/networks/`.
 
 ```bash
 python scripts/prepare_public_data.py \
@@ -230,13 +230,7 @@ When Module B and Module C are run together, Module C uses `${OUTPUT_ROOT}/all_m
 
 ## Fixed Split Files
 
-Train/validation/test split files are included under `data/splits/`. Regenerate them with:
-
-```bash
-python scripts/build_training_splits.py
-```
-
-Pass these files with `--split-csv` for bulk modules, `--phase0-split-csv`, `--phase1-split-csv`, and `--phase2-split-csv` for Module D, or the matching split arguments in `run_recipe.py`. If a split file is not provided, the runners fall back to generating the train/validation/test partitions from the seed value.
+Train/validation/test split files are included under `data/splits/`. The data preparation section above shows the regeneration command. Pass these files with `--split-csv` for bulk modules, `--phase0-split-csv`, `--phase1-split-csv`, and `--phase2-split-csv` for Module D, or the matching split arguments in `run_recipe.py`. If a split file is not provided, the runners fall back to generating the train/validation/test partitions from the seed value.
 
 ## Notes
 

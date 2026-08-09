@@ -1,6 +1,6 @@
 # RECIPE
 
-RECIPE packages the workflow behind the manuscript into a Python project with reusable code, command-line entry points, packaged runtime data aliases, and a small smoke-test dataset.
+RECIPE provides the manuscript workflow as a Python project with reusable code, command-line entry points, runtime data, and a small smoke-test dataset.
 
 The pipeline has four modules:
 
@@ -15,7 +15,7 @@ The pipeline has four modules:
 - `scripts/`: command-line entry points for modules A-D, data builders, and the smoke demo.
 - `notebooks/`: sanitized training notebooks with outputs and local absolute paths removed.
 - `examples/smoke_data/`: tiny simulated data for a CPU-friendly demo.
-- `data/`: packaged runtime data aliases. Large arrays and graphs are tracked with Git LFS.
+- `data/`: runtime data for the command-line workflows. Large arrays and graphs are tracked with Git LFS.
 - `data/splits/`: fixed train/validation/test CSV files used by the training notebooks.
 - `models/`: optional checkpoints. See `models/README.md`.
 - `docs/`: Sphinx documentation source.
@@ -32,7 +32,7 @@ Tested environment on the local `pyg` conda environment:
 - CUDA availability during test: `True`.
 - Other tested Python packages: `numpy 1.24.3`, `pandas 2.0.3`, `scipy 1.10.1`, `scikit-learn 1.3.2`, `matplotlib 3.6.3`, `networkx 3.1`, `seaborn 0.13.2`, `openpyxl 3.1.5`, `typing_extensions 4.9.0`.
 
-Package metadata supports Python `>=3.8`. The smoke demo runs on CPU. Full-size training and inference are much faster with an NVIDIA GPU; `--device auto` uses `cuda:0` when available and falls back to CPU. The full human unknown PPI graph is about 51-54 GB and is intentionally external, so that workflow needs substantially more disk and memory than the smoke demo or mouse packaged examples.
+Package metadata supports Python `>=3.8`. The smoke demo runs on CPU. Full-size training and inference are much faster with an NVIDIA GPU; `--device auto` uses `cuda:0` when available and falls back to CPU. The full human unknown PPI graph is about 51-54 GB and is distributed outside GitHub, so that workflow needs substantially more disk and memory than the smoke demo or mouse examples.
 
 No non-standard hardware is required for installation or the smoke demo. A CUDA-capable GPU is recommended for full model training on the large graph assets.
 
@@ -55,7 +55,7 @@ python -m pip install -r requirements.txt
 python -m pip install -e .
 ```
 
-Typical fresh environment setup time on a normal desktop or workstation is about 10-30 minutes, mostly depending on PyTorch/PyG wheel downloads.
+Typical fresh environment setup time on a workstation is about 10-30 minutes, mostly depending on PyTorch/PyG wheel downloads.
 
 ### Install From GitHub
 
@@ -75,7 +75,7 @@ The repository includes a small simulated demo dataset:
 - `examples/smoke_data/sequence_embeddings.csv`
 - `examples/smoke_data/ppi_matrix.csv`
 
-The packaged runtime data are under `data/`. Large files are tracked with Git LFS where they are suitable for GitHub. The full `data/networks/human_ppi_unknown.csv` is not committed because it is about 51-54 GB; distribute it separately and place it at that path if you need the human unknown workflow.
+Runtime data are under `data/`. Large files are tracked with Git LFS when they are suitable for GitHub. The full `data/networks/human_ppi_unknown.csv` is not committed because it is about 51-54 GB; distribute it separately and place it at that path if you need the human unknown workflow.
 
 To rebuild aliases from a private source data tree, arrange that tree with the same relative layout as `data/` and then run:
 
@@ -93,7 +93,7 @@ cd /path/to/RECIPE/RECIPE
 python scripts/run_smoke_demo.py --device cpu --output-dir outputs/smoke_demo
 ```
 
-Expected run time on a normal desktop/workstation: under 1 minute. The tested `pyg` CPU run completed in about 4.7 seconds wall time.
+Expected run time on a workstation: under 1 minute. The tested `pyg` CPU run completed in about 4.7 seconds wall time.
 
 Expected output:
 
@@ -119,7 +119,7 @@ Example JSON fields:
 
 ## Reproduce Public Tasks
 
-After cloning the repository, run commands from the package directory:
+Run commands from the package directory:
 
 ```bash
 git lfs install
@@ -135,7 +135,7 @@ MODEL_ROOT="${PWD}/models"
 OUTPUT_ROOT="${PWD}/outputs/reproduce"
 ```
 
-Prepare and validate public-task inputs:
+Prepare the reproduction inputs:
 
 ```bash
 python scripts/prepare_public_data.py \
@@ -143,7 +143,7 @@ python scripts/prepare_public_data.py \
   --manifest-json "${OUTPUT_ROOT}/data_preparation.json"
 ```
 
-For the full Module C coexpression summary, also generate the mouse coexpression matrix:
+To include the Module C coexpression summary, generate the mouse coexpression matrix:
 
 ```bash
 python scripts/prepare_public_data.py \
@@ -152,76 +152,13 @@ python scripts/prepare_public_data.py \
   --manifest-json "${OUTPUT_ROOT}/data_preparation_with_coexpression.json"
 ```
 
-For a minimal check:
+Run a minimal check:
 
 ```bash
 python scripts/run_smoke_demo.py --device cpu --output-dir outputs/smoke_demo
 ```
 
-For the packaged mouse and single-cell tasks:
-
-```bash
-# Module A: bulk mouse unknown protein prediction
-python scripts/run_module_a.py \
-  --species mouse \
-  --condition KD \
-  --seed 12 \
-  --device auto \
-  --reference-csv "${DATA_ROOT}/bulk/mouse_reference.csv" \
-  --sequence-npy "${DATA_ROOT}/bulk/mouse_sequence_unknown.npy" \
-  --ppi-csv "${DATA_ROOT}/networks/mouse_ppi_unknown.csv" \
-  --split-csv "${DATA_ROOT}/splits/bulk_mouse_unknown_seed12.csv" \
-  --output-dir "${OUTPUT_ROOT}/module_a_mouse_unknown"
-
-# Module B: bulk mouse known protein prediction
-python scripts/run_module_b.py \
-  --species mouse \
-  --condition KD \
-  --seed 12 \
-  --device auto \
-  --reference-csv "${DATA_ROOT}/bulk/mouse_reference.csv" \
-  --sequence-npy "${DATA_ROOT}/bulk/mouse_sequence_known.npy" \
-  --ppi-csv "${DATA_ROOT}/networks/mouse_ppi_known.csv" \
-  --split-csv "${DATA_ROOT}/splits/bulk_mouse_known_seed12.csv" \
-  --output-dir "${OUTPUT_ROOT}/module_b_mouse_known"
-
-# Module C: PPI refinement; run Module B first
-python scripts/run_module_c.py \
-  --species mouse \
-  --condition KD \
-  --seed 12 \
-  --device auto \
-  --reference-csv "${DATA_ROOT}/bulk/mouse_reference.csv" \
-  --sequence-npy "${DATA_ROOT}/bulk/mouse_sequence_known.npy" \
-  --ppi-csv "${DATA_ROOT}/networks/mouse_ppi_known.csv" \
-  --coexpression-csv "${DATA_ROOT}/networks/mouse_coexpression.csv" \
-  --bulk-checkpoint-path "${OUTPUT_ROOT}/module_b_mouse_known/model.pth" \
-  --output-dir "${OUTPUT_ROOT}/module_c_mouse_ppi"
-
-# Module D: single-cell transfer
-python scripts/run_module_d.py \
-  --steps phase0,phase1,phase2 \
-  --seed 12 \
-  --device auto \
-  --bulk-reference-csv "${DATA_ROOT}/bulk/human_reference.csv" \
-  --transcript-order-csv "${DATA_ROOT}/single_cell/expression_normalized.csv" \
-  --sequence-npy "${DATA_ROOT}/bulk/single_cell_transfer_sequence.npy" \
-  --ppi-csv "${DATA_ROOT}/networks/single_cell_transfer_ppi.csv" \
-  --cds-csv "${DATA_ROOT}/pausing/cds_annotations.csv" \
-  --phase0-pause-csv "${DATA_ROOT}/pausing/human_nc2_pause.csv" \
-  --phase1-pause-csv "${DATA_ROOT}/pausing/fraction_rich_pause.csv" \
-  --expression-csv "${DATA_ROOT}/single_cell/expression_raw.csv" \
-  --expression-normalized-csv "${DATA_ROOT}/single_cell/expression_normalized.csv" \
-  --metadata-csv "${DATA_ROOT}/single_cell/metadata.csv" \
-  --pause-matrix-csv "${DATA_ROOT}/pausing/pseudobulk_pause_matrix.csv" \
-  --phase0-init-checkpoint "${MODEL_ROOT}/single_cell/bulk_self_learning.pth" \
-  --phase0-split-csv "${DATA_ROOT}/splits/single_cell_self_learning_seed12.csv" \
-  --phase1-split-csv "${DATA_ROOT}/splits/single_cell_module_a_seed42.csv" \
-  --phase2-split-csv "${DATA_ROOT}/splits/single_cell_graph_seed42.csv" \
-  --output-dir "${OUTPUT_ROOT}/module_d_single_cell"
-```
-
-To run all modules in order:
+Run modules A-D in order:
 
 ```bash
 python scripts/run_recipe.py \
@@ -239,14 +176,7 @@ python scripts/run_recipe.py \
   --output-root "${OUTPUT_ROOT}/all_modules"
 ```
 
-When Module B and Module C are run together through `run_recipe.py`, Module C uses the Module B checkpoint at `${OUTPUT_ROOT}/all_modules/module_b/model.pth`. Detailed commands and expected output files are also listed in `docs/reproduction.md`.
-
-Input data used by the commands above:
-
-- Module A: `bulk/mouse_reference.csv`, `bulk/mouse_sequence_unknown.npy`, `networks/mouse_ppi_unknown.csv`, with split reference `splits/bulk_mouse_unknown_seed12.csv`.
-- Module B: `bulk/mouse_reference.csv`, `bulk/mouse_sequence_known.npy`, `networks/mouse_ppi_known.csv`, with split reference `splits/bulk_mouse_known_seed12.csv`.
-- Module C: Module B checkpoint `${OUTPUT_ROOT}/module_b_mouse_known/model.pth`, plus `bulk/mouse_reference.csv`, `bulk/mouse_sequence_known.npy`, `networks/mouse_ppi_known.csv`, and optional generated `networks/mouse_coexpression.csv`.
-- Module D: `bulk/human_reference.csv`, `bulk/single_cell_transfer_sequence.npy`, `networks/single_cell_transfer_ppi.csv`, `pausing/cds_annotations.csv`, `pausing/human_nc2_pause.csv`, `pausing/fraction_rich_pause.csv`, `pausing/pseudobulk_pause_matrix.csv`, `single_cell/expression_raw.csv`, `single_cell/expression_normalized.csv`, `single_cell/metadata.csv`, and the three `splits/single_cell_*.csv` files.
+When Module B and Module C are run together, Module C uses `${OUTPUT_ROOT}/all_modules/module_b/model.pth`. Per-module commands, explicit input paths, and expected output files are in `docs/reproduction.md`.
 
 ## Outputs
 
@@ -275,10 +205,10 @@ For bulk workflows, prepare:
 - A sequence embedding `.npy` file whose row count and order match the reference CSV.
 - A square PPI adjacency CSV whose dimensions match the number of reference rows.
 
-Use the existing workflow code directly if your column names match one of the packaged configs, or build a custom `BulkConditionSpec` and call `build_bulk_graph_from_dataframe`.
+Use the workflow code directly if your column names match one of the existing configs, or build a custom `BulkConditionSpec` and call `build_bulk_graph_from_dataframe`.
 
-For command-line use, pass these files directly with `--reference-csv`, `--sequence-npy`, `--ppi-csv`, and optionally `--split-csv`. For a data directory that mirrors the packaged `data/` layout, pass `--data-root /path/to/data`.
+For command-line use, pass these files directly with `--reference-csv`, `--sequence-npy`, `--ppi-csv`, and optionally `--split-csv`. For a data directory that mirrors the repository `data/` layout, pass `--data-root /path/to/data`.
 
 ## Reproduction Notes
 
-For a minimal reproducibility check, run the smoke demo and confirm that the three output files above are produced. For manuscript-scale reproduction, run the module commands with the packaged or externally restored runtime data and record the generated `metrics.json` / `summary.json` files. Use a fixed `--seed` value, and record the exact PyTorch/PyG/CUDA versions from the tested environment section.
+For a minimal reproducibility check, run the smoke demo and confirm that the three output files above are produced. For manuscript-scale reproduction, run the module commands with the repository data or externally restored data and record the generated `metrics.json` / `summary.json` files. Use a fixed `--seed` value, and record the exact PyTorch/PyG/CUDA versions from the tested environment section.

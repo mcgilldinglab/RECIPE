@@ -9,5 +9,5 @@ This is a tiny simulated bulk/PPI dataset for checking that RECIPE, PyTorch, and
 Run from `RECIPE/`:
 
 ```bash
-python3 scripts/run_smoke_demo.py --device cpu --output-dir outputs/smoke_demo
+python scripts/run_smoke_demo.py --device cpu --output-dir outputs/smoke_demo
 ```

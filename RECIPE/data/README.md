@@ -1,6 +1,6 @@
 # RECIPE Data Layout
 
-This directory contains packaged runtime data aliases used by `recipe.config`.
+This directory contains runtime data used by `recipe.config`.
 
 ## Smoke Demo
 
@@ -22,7 +22,7 @@ Commit small CSV and metadata files directly. Track large runtime assets with Gi
 
 ## Training Splits
 
-Fixed train/validation/test split CSV files are stored in `splits/`. These files are small enough to commit directly and are used by the public training notebooks as reproducible split references.
+Fixed train/validation/test split CSV files are stored in `splits/`. They are small enough to commit directly and are used by the training notebooks and command-line runners.
 
 Regenerate them with:
 
@@ -32,13 +32,13 @@ python scripts/build_training_splits.py
 
 ## Public Data Preparation
 
-From the package root, validate the public-task inputs with:
+From the package root, check the reproduction inputs with:
 
 ```bash
 python scripts/prepare_public_data.py --data-root data --manifest-json outputs/reproduce/data_preparation.json
 ```
 
-Build the optional Module C mouse coexpression matrix with:
+Build the Module C mouse coexpression matrix with:
 
 ```bash
 python scripts/prepare_public_data.py --data-root data --build-mouse-coexpression

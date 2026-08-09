@@ -9,7 +9,7 @@ Before rerunning the notebooks, replace these placeholders with local paths:
 - `<DNABERT_ROOT>`: local DNABERT checkout, if sequence-embedding utilities are reused.
 - `<LOCAL_DATA_ROOT>`: local root for external datasets not distributed through GitHub.
 
-The packaged command-line entry points in `../scripts/` are recommended for reproducible runs. Fixed train/validation/test CSV files are provided in `../data/splits/`. These notebooks are provided as training references and tutorials.
+The command-line entry points in `../scripts/` are recommended for reproducible runs. Fixed train/validation/test CSV files are provided in `../data/splits/`. These notebooks are training references and tutorials.
 
 ## Included Notebooks
 

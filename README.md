@@ -4,13 +4,13 @@
 
 ## Overview
 
-RECIPE is a deep graph learning framework for estimating protein abundance from RNA/Ribo-seq-related signals, transcript sequence embeddings, and protein-protein interaction topology. The packaged Python project lives in the repository subdirectory [`RECIPE/`](./RECIPE).
+RECIPE is a deep graph learning framework for estimating protein abundance from RNA/Ribo-seq signals, transcript sequence embeddings, and protein-protein interaction topology. The Python package lives in [`RECIPE/`](./RECIPE).
 
 ![Workflow](riboseq_WORKFLOW.png)
 
 ## Package Directory
 
-The installable package, command-line runners, packaged data layout, training notebooks, and detailed documentation are under [`RECIPE/`](./RECIPE).
+Code, command-line runners, data layout, training notebooks, and detailed documentation are under [`RECIPE/`](./RECIPE).
 
 ## Modules
 
@@ -33,7 +33,7 @@ python scripts/run_smoke_demo.py \
   --output-dir outputs/smoke_demo
 ```
 
-The smoke demo should finish in under 1 minute on a normal desktop or workstation.
+The smoke demo should finish in under 1 minute.
 
 ## Documentation
 

@@ -3,7 +3,7 @@
 RECIPE uses two kinds of data:
 
 - A tiny simulated demo dataset in `examples/smoke_data/`.
-- Runtime data aliases under `data/` for the packaged workflows.
+- Runtime data under `data/` for the command-line workflows.
 
 ## Smoke Demo Dataset
 
@@ -44,14 +44,14 @@ That graph is about 51-54 GB locally and should be distributed through external 
 
 ## Data Preparation
 
-After cloning, materialize Git LFS files and validate the public-task inputs:
+After cloning, download Git LFS files and check the reproduction inputs:
 
 ```bash
 git lfs pull
 python scripts/prepare_public_data.py --data-root data --manifest-json outputs/reproduce/data_preparation.json
 ```
 
-To build the optional mouse coexpression matrix used in Module C summaries:
+To build the mouse coexpression matrix used in Module C summaries:
 
 ```bash
 python scripts/prepare_public_data.py --data-root data --build-mouse-coexpression

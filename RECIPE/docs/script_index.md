@@ -14,12 +14,13 @@ Packaged module entry points:
 
 Data construction entry points:
 
+- `scripts/prepare_public_data.py`: check reproduction inputs and build derived files used by the reproduction commands.
 - `scripts/build_data_aliases.py`: rebuild data aliases from `RECIPE_SOURCE_DATA_ROOT`.
-- `scripts/build_bulk_features.py`: export packaged bulk feature tables.
+- `scripts/build_bulk_features.py`: export bulk feature tables.
 - `scripts/build_coexpression.py`: rebuild a coexpression matrix.
 - `scripts/build_single_cell_inputs.py`: normalize the single-cell expression matrix.
 - `scripts/build_training_splits.py`: export fixed train/validation/test CSV files into `data/splits/`.
-- `scripts/build_all_data.py`: run lightweight packaged data-build steps; pass `--rebuild-aliases` only when source data should be relinked.
+- `scripts/build_all_data.py`: run lightweight data-build steps; pass `--rebuild-aliases` only when source data should be relinked.
 
 Training notebooks:
 
@@ -34,7 +35,7 @@ Core package modules:
 - `src/recipe/data_construction.py`: data aliasing and construction helpers.
 - `src/recipe/assets.py`: data, model, and output path resolution.
 - `src/recipe/config.py`: default task-level dataset and checkpoint configuration.
-- `src/recipe/bulk_workflow.py`: packaged bulk runner used by modules A and B.
-- `src/recipe/ppi_workflow.py`: packaged PPI refinement runner used by module C.
-- `src/recipe/single_cell_riboseq_workflow.py`: packaged three-stage single-cell workflow used by module D.
+- `src/recipe/bulk_workflow.py`: bulk runner used by modules A and B.
+- `src/recipe/ppi_workflow.py`: PPI refinement runner used by module C.
+- `src/recipe/single_cell_riboseq_workflow.py`: three-stage single-cell workflow used by module D.
 - `src/recipe/pipeline.py`: combined pipeline entry point.
