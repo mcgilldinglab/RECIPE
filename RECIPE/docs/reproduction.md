@@ -24,6 +24,32 @@ MODEL_ROOT="${PWD}/models"
 OUTPUT_ROOT="${PWD}/outputs/reproduce"
 ```
 
+## Data Preparation
+
+Materialize Git LFS files, prepare derived inputs, and verify the files used by the public tasks:
+
+```bash
+git lfs pull
+python scripts/prepare_public_data.py \
+  --data-root "${DATA_ROOT}" \
+  --manifest-json "${OUTPUT_ROOT}/data_preparation.json"
+```
+
+For the full Module C coexpression summary, also build the mouse coexpression matrix. This creates a large CSV file under `${DATA_ROOT}/networks/`.
+
+```bash
+python scripts/prepare_public_data.py \
+  --data-root "${DATA_ROOT}" \
+  --build-mouse-coexpression \
+  --manifest-json "${OUTPUT_ROOT}/data_preparation_with_coexpression.json"
+```
+
+If the fixed split files need to be regenerated, run:
+
+```bash
+python scripts/build_training_splits.py --output-dir "${DATA_ROOT}/splits"
+```
+
 ## Quick Check
 
 ```bash
@@ -108,7 +134,7 @@ Inputs passed explicitly:
 - `${DATA_ROOT}/bulk/mouse_reference.csv`
 - `${DATA_ROOT}/bulk/mouse_sequence_known.npy`
 - `${DATA_ROOT}/networks/mouse_ppi_known.csv`
-- `${DATA_ROOT}/networks/mouse_coexpression.csv`
+- `${DATA_ROOT}/networks/mouse_coexpression.csv` if generated during data preparation.
 
 ```bash
 python scripts/run_module_c.py \

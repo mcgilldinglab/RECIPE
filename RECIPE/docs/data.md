@@ -42,23 +42,29 @@ Do not upload this file to GitHub:
 
 That graph is about 51-54 GB locally and should be distributed through external storage.
 
-## External Data Roots
+## Data Preparation
 
-For an installed package with data outside site-packages:
+After cloning, materialize Git LFS files and validate the public-task inputs:
 
 ```bash
-export RECIPE_DATA_ROOT=/path/to/RECIPE/RECIPE/data
-export RECIPE_MODEL_ROOT=/path/to/RECIPE/RECIPE/models
+git lfs pull
+python scripts/prepare_public_data.py --data-root data --manifest-json outputs/reproduce/data_preparation.json
+```
+
+To build the optional mouse coexpression matrix used in Module C summaries:
+
+```bash
+python scripts/prepare_public_data.py --data-root data --build-mouse-coexpression
 ```
 
 ## Explicit Reproduction Inputs
 
-The public reproduction commands use these input paths under `RECIPE_DATA_ROOT`:
+The public reproduction commands pass these input paths explicitly under `DATA_ROOT`:
 
 - Module A: `bulk/mouse_reference.csv`, `bulk/mouse_sequence_unknown.npy`, `networks/mouse_ppi_unknown.csv`.
 - Module B: `bulk/mouse_reference.csv`, `bulk/mouse_sequence_known.npy`, `networks/mouse_ppi_known.csv`.
-- Module C: `bulk/mouse_reference.csv`, `bulk/mouse_sequence_known.npy`, `networks/mouse_ppi_known.csv`, plus a Module B checkpoint such as `outputs/reproduce/module_b_mouse_known/model.pth`.
-- Module D: `bulk/human_reference.csv`, `bulk/single_cell_transfer_sequence.npy`, `networks/single_cell_transfer_ppi.csv`, `pausing/cds_annotations.csv`, `pausing/human_nc2_pause.csv`, `pausing/pseudobulk_pause_matrix.csv`, `single_cell/expression_raw.csv`, `single_cell/expression_normalized.csv`, and `single_cell/metadata.csv`.
+- Module C: `bulk/mouse_reference.csv`, `bulk/mouse_sequence_known.npy`, `networks/mouse_ppi_known.csv`, optional generated `networks/mouse_coexpression.csv`, plus a Module B checkpoint such as `outputs/reproduce/module_b_mouse_known/model.pth`.
+- Module D: `bulk/human_reference.csv`, `bulk/single_cell_transfer_sequence.npy`, `networks/single_cell_transfer_ppi.csv`, `pausing/cds_annotations.csv`, `pausing/human_nc2_pause.csv`, `pausing/fraction_rich_pause.csv`, `pausing/pseudobulk_pause_matrix.csv`, `single_cell/expression_raw.csv`, `single_cell/expression_normalized.csv`, and `single_cell/metadata.csv`.
 
 Fixed split reference files are under `data/splits/`.
 

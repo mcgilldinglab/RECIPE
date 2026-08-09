@@ -30,6 +30,20 @@ Regenerate them with:
 python scripts/build_training_splits.py
 ```
 
+## Public Data Preparation
+
+From the package root, validate the public-task inputs with:
+
+```bash
+python scripts/prepare_public_data.py --data-root data --manifest-json outputs/reproduce/data_preparation.json
+```
+
+Build the optional Module C mouse coexpression matrix with:
+
+```bash
+python scripts/prepare_public_data.py --data-root data --build-mouse-coexpression
+```
+
 Track these with Git LFS:
 
 - `data/bulk/human_sequence_known.npy`
@@ -58,9 +72,4 @@ export RECIPE_SOURCE_DATA_ROOT=/path/to/source/project
 python scripts/build_data_aliases.py --manifest-json data/alias_manifest.json
 ```
 
-For a package installed outside the repository, set:
-
-```bash
-export RECIPE_DATA_ROOT=/path/to/RECIPE/RECIPE/data
-export RECIPE_MODEL_ROOT=/path/to/RECIPE/RECIPE/models
-```
+For a package installed outside the repository, pass `--data-root /path/to/RECIPE/RECIPE/data` or the file-level input arguments listed in `docs/reproduction.md`.

@@ -135,6 +135,23 @@ MODEL_ROOT="${PWD}/models"
 OUTPUT_ROOT="${PWD}/outputs/reproduce"
 ```
 
+Prepare and validate public-task inputs:
+
+```bash
+python scripts/prepare_public_data.py \
+  --data-root "${DATA_ROOT}" \
+  --manifest-json "${OUTPUT_ROOT}/data_preparation.json"
+```
+
+For the full Module C coexpression summary, also generate the mouse coexpression matrix:
+
+```bash
+python scripts/prepare_public_data.py \
+  --data-root "${DATA_ROOT}" \
+  --build-mouse-coexpression \
+  --manifest-json "${OUTPUT_ROOT}/data_preparation_with_coexpression.json"
+```
+
 For a minimal check:
 
 ```bash
@@ -228,7 +245,7 @@ Input data used by the commands above:
 
 - Module A: `bulk/mouse_reference.csv`, `bulk/mouse_sequence_unknown.npy`, `networks/mouse_ppi_unknown.csv`, with split reference `splits/bulk_mouse_unknown_seed12.csv`.
 - Module B: `bulk/mouse_reference.csv`, `bulk/mouse_sequence_known.npy`, `networks/mouse_ppi_known.csv`, with split reference `splits/bulk_mouse_known_seed12.csv`.
-- Module C: Module B checkpoint `${OUTPUT_ROOT}/module_b_mouse_known/model.pth`, plus `bulk/mouse_reference.csv`, `bulk/mouse_sequence_known.npy`, `networks/mouse_ppi_known.csv`, and `networks/mouse_coexpression.csv`.
+- Module C: Module B checkpoint `${OUTPUT_ROOT}/module_b_mouse_known/model.pth`, plus `bulk/mouse_reference.csv`, `bulk/mouse_sequence_known.npy`, `networks/mouse_ppi_known.csv`, and optional generated `networks/mouse_coexpression.csv`.
 - Module D: `bulk/human_reference.csv`, `bulk/single_cell_transfer_sequence.npy`, `networks/single_cell_transfer_ppi.csv`, `pausing/cds_annotations.csv`, `pausing/human_nc2_pause.csv`, `pausing/fraction_rich_pause.csv`, `pausing/pseudobulk_pause_matrix.csv`, `single_cell/expression_raw.csv`, `single_cell/expression_normalized.csv`, `single_cell/metadata.csv`, and the three `splits/single_cell_*.csv` files.
 
 ## Outputs
