@@ -135,6 +135,72 @@ Example JSON fields:
 }
 ```
 
+## Reproduce Public Tasks
+
+After cloning the repository, run commands from the package directory:
+
+```bash
+git lfs install
+git lfs pull
+python -m pip install -e . --no-deps
+```
+
+For a minimal check:
+
+```bash
+python scripts/run_smoke_demo.py --device cpu --output-dir outputs/smoke_demo
+```
+
+For the packaged mouse and single-cell tasks:
+
+```bash
+# Module A: bulk mouse unknown protein prediction
+python scripts/run_module_a.py \
+  --species mouse \
+  --condition KD \
+  --seed 12 \
+  --device auto \
+  --output-dir outputs/reproduce/module_a_mouse_unknown
+
+# Module B: bulk mouse known protein prediction
+python scripts/run_module_b.py \
+  --species mouse \
+  --condition KD \
+  --seed 12 \
+  --device auto \
+  --output-dir outputs/reproduce/module_b_mouse_known
+
+# Module C: PPI refinement; run Module B first
+python scripts/run_module_c.py \
+  --species mouse \
+  --condition KD \
+  --seed 12 \
+  --device auto \
+  --bulk-checkpoint-path outputs/reproduce/module_b_mouse_known/model.pth \
+  --output-dir outputs/reproduce/module_c_mouse_ppi
+
+# Module D: single-cell transfer
+python scripts/run_module_d.py \
+  --steps phase0,phase1,phase2 \
+  --seed 12 \
+  --device auto \
+  --output-dir outputs/reproduce/module_d_single_cell
+```
+
+To run all modules in order:
+
+```bash
+python scripts/run_recipe.py \
+  --modules A,B,C,D \
+  --species mouse \
+  --condition KD \
+  --seed 12 \
+  --device auto \
+  --output-root outputs/reproduce/all_modules
+```
+
+When Module B and Module C are run together through `run_recipe.py`, Module C uses the Module B checkpoint at `outputs/reproduce/all_modules/module_b/model.pth`. Detailed commands and expected output files are also listed in `docs/reproduction.md`.
+
 ## Direct Commands
 
 Module A, mouse unknown benchmark based on the notebook-mapped dataset:

@@ -65,6 +65,40 @@ Expected run time: under 1 minute. Expected outputs:
 - `outputs/smoke_demo/embeddings.npy`
 - `outputs/smoke_demo/metrics.json`
 
+## Reproduce Public Tasks
+
+Run commands from the package directory:
+
+```bash
+cd RECIPE/RECIPE
+git lfs pull
+python -m pip install -e . --no-deps
+```
+
+Then run the task entry points:
+
+```bash
+# Module A: bulk mouse unknown prediction
+python scripts/run_module_a.py --species mouse --condition KD --seed 12 --device auto --output-dir outputs/reproduce/module_a_mouse_unknown
+
+# Module B: bulk mouse known prediction
+python scripts/run_module_b.py --species mouse --condition KD --seed 12 --device auto --output-dir outputs/reproduce/module_b_mouse_known
+
+# Module C: PPI refinement; run Module B first
+python scripts/run_module_c.py --species mouse --condition KD --seed 12 --device auto --bulk-checkpoint-path outputs/reproduce/module_b_mouse_known/model.pth --output-dir outputs/reproduce/module_c_mouse_ppi
+
+# Module D: single-cell transfer
+python scripts/run_module_d.py --steps phase0,phase1,phase2 --seed 12 --device auto --output-dir outputs/reproduce/module_d_single_cell
+```
+
+One-command pipeline:
+
+```bash
+python scripts/run_recipe.py --modules A,B,C,D --species mouse --condition KD --seed 12 --device auto --output-root outputs/reproduce/all_modules
+```
+
+Full command details and expected output files are in [`RECIPE/docs/reproduction.md`](./RECIPE/docs/reproduction.md).
+
 ## Documentation
 
 Full installation, data, demo, expected output, runtime, and reproduction notes are in [`RECIPE/README.md`](./RECIPE/README.md).

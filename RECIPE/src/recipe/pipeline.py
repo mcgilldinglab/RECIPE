@@ -41,12 +41,15 @@ def run_recipe_pipeline(
             device_name=device_name,
         )
     if "C" in normalized_modules:
+        module_b_checkpoint = output_root / "module_b" / "model.pth"
+        bulk_checkpoint_path = module_b_checkpoint if module_b_checkpoint.exists() else None
         summary["C"] = run_ppi_refinement(
             species=species,
             condition_name=condition,
             output_dir=output_root / "module_c",
             seed=seed,
             device_name=device_name,
+            bulk_checkpoint_path=bulk_checkpoint_path,
         )
     if "D" in normalized_modules:
         summary["D"] = run_single_cell_transfer(
