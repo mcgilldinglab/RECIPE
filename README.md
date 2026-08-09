@@ -72,8 +72,13 @@ Run commands from the package directory:
 ```bash
 cd RECIPE/RECIPE
 git lfs pull
+export RECIPE_DATA_ROOT="${PWD}/data"
+export RECIPE_MODEL_ROOT="${PWD}/models"
+export RECIPE_OUTPUT_ROOT="${PWD}/outputs"
 python -m pip install -e . --no-deps
 ```
+
+The input data used by these commands are under `${RECIPE_DATA_ROOT}`. For example, Module A reads `data/bulk/mouse_reference.csv`, `data/bulk/mouse_sequence_unknown.npy`, and `data/networks/mouse_ppi_unknown.csv`. The full per-module input list is in [`RECIPE/docs/reproduction.md`](./RECIPE/docs/reproduction.md).
 
 Then run the task entry points:
 

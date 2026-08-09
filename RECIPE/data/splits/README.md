@@ -21,6 +21,7 @@ python scripts/build_training_splits.py
 ## Included Splits
 
 - `bulk_mouse_unknown_seed*.csv`: bulk mouse unknown-protein training splits used by the mouse benchmark notebook.
+- `bulk_mouse_known_seed*.csv`: bulk mouse known-protein training splits used by the module B reproduction command.
 - `bulk_human_known_seed*.csv`: bulk human known-protein splits used by the bulk self-learning notebook.
 - `single_cell_self_learning_seed*.csv`: 11,619-node single-cell transfer/self-learning splits.
 - `single_cell_module_a_seed42.csv`: single-cell Module A fine-tuning split with 60% train, 20% validation, and 20% test among labeled nodes.

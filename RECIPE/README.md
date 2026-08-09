@@ -142,8 +142,13 @@ After cloning the repository, run commands from the package directory:
 ```bash
 git lfs install
 git lfs pull
+export RECIPE_DATA_ROOT="${PWD}/data"
+export RECIPE_MODEL_ROOT="${PWD}/models"
+export RECIPE_OUTPUT_ROOT="${PWD}/outputs"
 python -m pip install -e . --no-deps
 ```
+
+These environment variables make the input and output locations explicit. All paths below are relative to `${RECIPE_DATA_ROOT}` unless noted otherwise.
 
 For a minimal check:
 
@@ -200,6 +205,13 @@ python scripts/run_recipe.py \
 ```
 
 When Module B and Module C are run together through `run_recipe.py`, Module C uses the Module B checkpoint at `outputs/reproduce/all_modules/module_b/model.pth`. Detailed commands and expected output files are also listed in `docs/reproduction.md`.
+
+Input data used by the commands above:
+
+- Module A: `bulk/mouse_reference.csv`, `bulk/mouse_sequence_unknown.npy`, `networks/mouse_ppi_unknown.csv`, with split reference `splits/bulk_mouse_unknown_seed12.csv`.
+- Module B: `bulk/mouse_reference.csv`, `bulk/mouse_sequence_known.npy`, `networks/mouse_ppi_known.csv`, with split reference `splits/bulk_mouse_known_seed12.csv`.
+- Module C: Module B checkpoint `outputs/reproduce/module_b_mouse_known/model.pth`, plus `bulk/mouse_reference.csv`, `bulk/mouse_sequence_known.npy`, and `networks/mouse_ppi_known.csv`.
+- Module D: `bulk/human_reference.csv`, `bulk/single_cell_transfer_sequence.npy`, `networks/single_cell_transfer_ppi.csv`, `pausing/cds_annotations.csv`, `pausing/human_nc2_pause.csv`, `pausing/pseudobulk_pause_matrix.csv`, `single_cell/expression_raw.csv`, `single_cell/expression_normalized.csv`, and `single_cell/metadata.csv`.
 
 ## Direct Commands
 

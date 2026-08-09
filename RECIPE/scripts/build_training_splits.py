@@ -153,6 +153,12 @@ def main() -> None:
                 _bulk_split_dataframe("mouse", "unknown", seed),
             )
         )
+        summary.append(
+            _write_split(
+                output_dir / f"bulk_mouse_known_seed{seed}.csv",
+                _bulk_split_dataframe("mouse", "known", seed),
+            )
+        )
     for seed in _parse_seeds(args.bulk_human_seeds):
         summary.append(
             _write_split(
