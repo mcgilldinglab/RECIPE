@@ -1,27 +1,27 @@
-<h1 align="center">RECIPE</h1>
+<h1 align="center">RECIPE bridges transcriptomics and proteomics with deep graph learning on Ribo-seq data</h1>
 
-<p align="center"><strong>Deep graph learning for linking Ribo-seq/RNA-seq signals with protein abundance</strong></p>
-
-<p align="center">
-  <img src="RECIPE_logo.png" alt="RECIPE logo" width="260">
-</p>
+![logo](RECIPE_logo.png)
 
 ## Overview
 
-RECIPE is a Python package for estimating protein abundance from transcript-level signals, transcript sequence embeddings, and protein-protein interaction topology. The input signal can be RNA-seq, Ribo-seq, or another transcript-level measurement selected by the user.
+RECIPE is a deep graph learning framework for estimating protein abundance from RNA/Ribo-seq signals, transcript sequence embeddings, and protein-protein interaction topology. The Python package lives in [`RECIPE/`](./RECIPE).
 
-The package provides four workflows:
+![Workflow](riboseq_WORKFLOW.png)
+
+## Package Directory
+
+Code, command-line runners, data layout, training notebooks, and detailed documentation are under [`RECIPE/`](./RECIPE).
+
+## Modules
 
 - Module A: bulk inference for proteomics-undetected or unknown proteins.
 - Module B: bulk protein abundance prediction for proteins with measured labels.
 - Module C: self-supervised PPI refinement.
 - Module D: single-cell transfer with pseudo-bulk alignment and a cell-graph head.
 
-The package source, command-line runners, data layout, notebooks, and detailed documentation are in [`RECIPE/`](./RECIPE).
-
 ## Install
 
-Clone the repository and install the Python package from the `RECIPE/` subdirectory:
+Method 1: clone the repository and install from the local package directory:
 
 ```bash
 git lfs install
@@ -38,37 +38,44 @@ python -m pip install -r requirements.txt
 python -m pip install -e .
 ```
 
-If PyTorch and PyTorch Geometric are already installed, run:
+Method 2: install the package directly from GitHub:
 
 ```bash
+conda create -n recipe python=3.8 -y
+conda activate recipe
+
+# Install PyTorch and PyTorch Geometric for your CUDA or CPU setup first.
+python -m pip install "torch>=2.1" "torch-geometric>=2.5"
+python -m pip install "git+https://github.com/mcgilldinglab/RECIPE.git@main#subdirectory=RECIPE"
+```
+
+If the package is installed directly from GitHub, keep data outside the Python environment and pass `--data-root /path/to/RECIPE/RECIPE/data` or the file-level input arguments shown in the reproduction guide.
+
+## Quick Start
+
+```bash
+git lfs install
+git clone https://github.com/mcgilldinglab/RECIPE.git
 cd RECIPE/RECIPE
+git lfs pull
 python -m pip install -e . --no-deps
+python scripts/run_smoke_demo.py \
+  --data-dir examples/smoke_data \
+  --device cpu \
+  --output-dir outputs/smoke_demo
 ```
 
-Detailed environment notes are provided in [`RECIPE/README.md`](./RECIPE/README.md).
+The smoke demo should finish in under 1 minute.
 
-## Tutorials
+## Documentation
 
-Start with the smoke demo:
-
-```bash
-cd RECIPE/RECIPE
-python scripts/run_smoke_demo.py --device cpu --output-dir outputs/smoke_demo
-```
-
-Additional tutorials and reproduction instructions:
-
-- Full package guide: [`RECIPE/README.md`](./RECIPE/README.md)
-- Public task reproduction commands with explicit input paths: [`RECIPE/docs/reproduction.md`](./RECIPE/docs/reproduction.md)
-- Script index: [`RECIPE/docs/script_index.md`](./RECIPE/docs/script_index.md)
-- Data layout: [`RECIPE/data/README.md`](./RECIPE/data/README.md)
-- Training notebooks: [`RECIPE/notebooks/training`](./RECIPE/notebooks/training)
+- Full package documentation: [`RECIPE/README.md`](./RECIPE/README.md)
+- Reproduction commands and explicit input data paths: [`RECIPE/docs/reproduction.md`](./RECIPE/docs/reproduction.md)
+- Data layout: [`RECIPE/docs/data.md`](./RECIPE/docs/data.md)
+- Sanitized training notebooks: [`RECIPE/notebooks/training`](./RECIPE/notebooks/training)
 
 ## Contact
 
-- Luying Su: luying.su@mail.mcgill.ca
-- Bowen Zhao: bowen.zhao@mail.mcgill.ca
-- Wei Song: songwei@ibms.pumc.edu.cn
-- Jun Ding: jun.ding@mcgill.ca
+Luying Su (luying.su@mail.mcgill.ca), Bowen Zhao (bowen.zhao@mail.mcgill.ca), Wei Song (songwei@ibms.pumc.edu.cn), Jun Ding (jun.ding@mcgill.ca)
 
-Meakins-Christie Laboratories, Research Institute of the McGill University Health Centre, McGill University.
+Affiliations: Meakins-Christie Laboratories, RI-MUHC, McGill University
