@@ -10,7 +10,7 @@ git clone https://github.com/mcgilldinglab/RECIPE.git
 cd RECIPE/RECIPE
 git lfs pull
 
-conda activate pyg
+conda activate recipe
 export RECIPE_DATA_ROOT="${PWD}/data"
 export RECIPE_MODEL_ROOT="${PWD}/models"
 export RECIPE_OUTPUT_ROOT="${PWD}/outputs"

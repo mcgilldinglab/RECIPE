@@ -27,17 +27,6 @@ The local tested environment is the `pyg` conda environment:
 
 No non-standard hardware is required for installation or the smoke demo. A CUDA-capable GPU is recommended for full-size training. The full human unknown PPI graph is about 51-54 GB and is not distributed in GitHub.
 
-## Existing PyG Environment
-
-```bash
-conda activate pyg
-cd /path/to/RECIPE/RECIPE
-python -m pip install -e . --no-deps
-python -c "import recipe; print(recipe.__file__)"
-```
-
-Typical install time in an environment that already has PyTorch and PyG: under 1 minute. Editable installation in the tested `pyg` environment completed successfully in about 11 seconds.
-
 ## Fresh Environment
 
 Install PyTorch and PyTorch Geometric first with wheels matching your CUDA or CPU setup, then install RECIPE:

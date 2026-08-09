@@ -38,19 +38,6 @@ No non-standard hardware is required for installation or the smoke demo. A CUDA-
 
 ## Installation
 
-### Existing `pyg` Environment
-
-On the tested machine:
-
-```bash
-conda activate pyg
-cd /path/to/RECIPE/RECIPE
-python -m pip install -e . --no-deps
-python -c "import recipe; print(recipe.__file__)"
-```
-
-Typical install time in an existing PyTorch/PyG environment is under 1 minute because the heavy dependencies are already installed. Editable installation in the tested `pyg` environment completed successfully in about 11 seconds.
-
 ### Fresh Environment
 
 Install PyTorch and PyTorch Geometric with wheels matching your CUDA or CPU setup first, then install RECIPE:
