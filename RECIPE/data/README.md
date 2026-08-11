@@ -79,6 +79,6 @@ This file is external and is not uploaded to GitHub:
 
 - `data/networks/human_ppi_unknown.csv`
 
-That file is about 51-54 GB locally. It can be shared through Google Drive for review and should be deposited in a stable archive for publication when possible.
+That file is about 54 GB after extraction. Download the compressed copy from [Google Drive](https://drive.google.com/file/d/1UIefENLMUvWTJ9K8jxVmuGdPFD4Vtnrc/view?usp=sharing), then verify and extract it by following [`docs/data.md`](../docs/data.md#external-human-ppi-graph). A stable archive should replace the Google Drive link for publication when possible.
 
 For a package installed outside the repository, pass `--data-root /path/to/RECIPE/RECIPE/data` or the file-level input arguments listed in `docs/reproduction.md`.

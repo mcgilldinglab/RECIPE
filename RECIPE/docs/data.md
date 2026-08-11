@@ -36,11 +36,32 @@ These larger runtime assets are tracked with Git LFS in the repository:
 - `data/networks/single_cell_transfer_ppi.csv`
 - `data/single_cell/cell_embeddings.npy`
 
+## External Human PPI Graph
+
 This file is required only for the human unknown-protein workflow and is not stored in GitHub:
 
 - `data/networks/human_ppi_unknown.csv`
 
-That graph is about 51-54 GB locally. For review, it can be shared through an external link such as Google Drive and placed at the path above. For publication, use a stable archive such as Zenodo, Figshare, OSF, or an institutional repository when possible.
+Download the compressed graph from [Google Drive](https://drive.google.com/file/d/1UIefENLMUvWTJ9K8jxVmuGdPFD4Vtnrc/view?usp=sharing). The compressed file is 3,306,294,128 bytes (3.08 GiB) and expands to about 54 GB. Its SHA-256 checksum is:
+
+```text
+2c7b7cd3e3ca7de35354aa81a6caf34c37da8d4e20406329b49bde09dd48704e
+```
+
+From the package directory (`RECIPE/RECIPE`), download, verify, and extract it with:
+
+```bash
+mkdir -p data/networks
+curl --location --fail --retry 3 --continue-at - \
+  'https://drive.usercontent.google.com/download?id=1UIefENLMUvWTJ9K8jxVmuGdPFD4Vtnrc&export=download&confirm=t' \
+  --output data/networks/human_ppi_unknown.csv.gz
+printf '%s  %s\n' \
+  '2c7b7cd3e3ca7de35354aa81a6caf34c37da8d4e20406329b49bde09dd48704e' \
+  'data/networks/human_ppi_unknown.csv.gz' | sha256sum --check -
+gzip --decompress --keep data/networks/human_ppi_unknown.csv.gz
+```
+
+Keep at least 60 GB of free disk space for the compressed and extracted copies. For publication, a stable archive such as Zenodo, Figshare, OSF, or an institutional repository is preferable to Google Drive.
 
 ## Data Preparation
 

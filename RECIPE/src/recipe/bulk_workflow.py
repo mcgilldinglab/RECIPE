@@ -49,7 +49,8 @@ def _check_bulk_input_files(config: BulkTaskConfig) -> None:
     if config.species.lower() == "human" and config.task.lower() == "unknown":
         extra = (
             " The human unknown workflow requires the external PPI graph "
-            "`data/networks/human_ppi_unknown.csv` (about 51-54 GB), which is not stored in GitHub."
+            "`data/networks/human_ppi_unknown.csv` (about 54 GB after extraction). "
+            "Download instructions: https://github.com/mcgilldinglab/RECIPE/blob/main/RECIPE/docs/data.md"
         )
     raise FileNotFoundError(f"Missing RECIPE input file(s): {details}.{extra}")
 

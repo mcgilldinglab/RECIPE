@@ -52,7 +52,7 @@ If the fixed split files need to be regenerated, run:
 python scripts/build_training_splits.py --output-dir "${DATA_ROOT}/splits"
 ```
 
-The human unknown-protein workflow additionally requires the external file `${DATA_ROOT}/networks/human_ppi_unknown.csv`. This graph is about 51-54 GB and is not stored in GitHub. It may be shared through Google Drive for review, but an archival repository such as Zenodo, Figshare, OSF, or an institutional archive is preferable for publication.
+The human unknown-protein workflow additionally requires the external file `${DATA_ROOT}/networks/human_ppi_unknown.csv`. Download the compressed graph from [Google Drive](https://drive.google.com/file/d/1UIefENLMUvWTJ9K8jxVmuGdPFD4Vtnrc/view?usp=sharing), then follow the checksum and extraction instructions in [`data.md`](data.md#external-human-ppi-graph).
 
 ## Quick Check
 
@@ -143,7 +143,7 @@ Expected files:
 - `${OUTPUT_ROOT}/module_b_mouse_unknown/metrics.json`
 - `${OUTPUT_ROOT}/module_b_mouse_unknown/model.pth` when `--train` is used or no bundled checkpoint is available.
 
-The human unknown-protein run uses `human_reference.csv`, `human_sequence_unknown.npy`, `bulk/human_unknown_seed0.pth`, and an external `data/networks/human_ppi_unknown.csv` file. That PPI graph is about 51-54 GB and is not distributed through GitHub.
+The human unknown-protein run uses `human_reference.csv`, `human_sequence_unknown.npy`, `bulk/human_unknown_seed0.pth`, and the externally downloaded `data/networks/human_ppi_unknown.csv` file described in [`data.md`](data.md#external-human-ppi-graph).
 
 ### Module C: PPI Refinement
 
@@ -254,5 +254,5 @@ For the combined runner, use the matching bulk arguments: `--bulk-input-col`, `-
 ## Notes
 
 - The mouse workflows can be reproduced from files included in the repository.
-- The human unknown workflow requires `data/networks/human_ppi_unknown.csv`, which is about 51-54 GB and is distributed outside GitHub.
+- The human unknown workflow requires the externally downloaded `data/networks/human_ppi_unknown.csv`, which is about 54 GB after extraction; see [`data.md`](data.md#external-human-ppi-graph).
 - Full-size model training is intended for a CUDA-capable GPU. The tested full workflows were run on one NVIDIA RTX 4090 GPU.

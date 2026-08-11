@@ -26,7 +26,7 @@ The local tested environment is the `pyg` conda environment:
 - `seaborn >=0.13`
 - `openpyxl >=3.1`
 
-No non-standard hardware is required for installation or the smoke demo. A CUDA-capable GPU is recommended for full-size training. The full human unknown PPI graph is about 51-54 GB and is not distributed in GitHub.
+No non-standard hardware is required for installation or the smoke demo. A CUDA-capable GPU is recommended for full-size training. The external human unknown PPI graph is about 54 GB after extraction; download instructions are provided in [`data.md`](data.md#external-human-ppi-graph).
 
 ## Fresh Environment
 
