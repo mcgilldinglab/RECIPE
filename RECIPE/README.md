@@ -30,7 +30,7 @@ Tested environment on the local `pyg` conda environment:
 - CUDA runtime reported by PyTorch: `12.1`.
 - PyTorch Geometric: `2.5.3`.
 - CUDA availability during test: `True`.
-- Other tested Python packages: `numpy 1.24.3`, `pandas 2.0.3`, `scipy 1.10.1`, `scikit-learn 1.3.2`, `matplotlib 3.6.3`, `networkx 3.1`, `seaborn 0.13.2`, `openpyxl 3.1.5`, `typing_extensions 4.9.0`.
+- Other tested Python packages: `numpy 1.24.3`, `pandas 2.0.3`, `pysam 0.22.1`, `scipy 1.10.1`, `scikit-learn 1.3.2`, `matplotlib 3.6.3`, `networkx 3.1`, `seaborn 0.13.2`, `openpyxl 3.1.5`, `typing_extensions 4.9.0`.
 
 Package metadata supports Python `>=3.8`. The smoke demo runs on CPU. Full-size training and inference are much faster with an NVIDIA GPU; `--device auto` uses `cuda:0` when available and falls back to CPU. The full human unknown PPI graph is about 51-54 GB and is distributed outside GitHub, so that workflow needs substantially more disk and memory than the smoke demo or mouse examples.
 
@@ -83,6 +83,32 @@ To rebuild aliases from a private source data tree, arrange that tree with the s
 export RECIPE_SOURCE_DATA_ROOT=/path/to/source/project
 python scripts/build_data_aliases.py --manifest-json data/alias_manifest.json
 ```
+
+## Pausing Feature Calculation
+
+The pausing feature can be rebuilt from a CDS annotation CSV and a coordinate-sorted BAM file. The CDS table should contain semicolon-separated `Start` and `End` columns, a reference column such as `seqnames`, a `Length` column, and a protein identifier column such as `protein_id` or `protein`.
+
+Compute per-position pause scores:
+
+```bash
+python scripts/compute_pausing.py score-bam \
+  --cds-csv data/pausing/cds_annotations.csv \
+  --bam /path/to/riboseq.sorted.bam \
+  --score-csv outputs/pausing/pause_scores.csv
+```
+
+Summarize position scores into the `High_Pause_Counts` table used by RECIPE:
+
+```bash
+python scripts/compute_pausing.py summarize \
+  --scores-csv outputs/pausing/pause_scores.csv \
+  --summary-cds-csv data/pausing/cds_annotations.csv \
+  --output-csv outputs/pausing/high_pause_counts.csv \
+  --threshold 3.3 \
+  --threshold-mode absolute
+```
+
+The score calculation trims the first and last 60 nt of the CDS by default, matching the manuscript preprocessing scripts. For single-cell or barcode-level score files, pass grouped columns such as `--group-cols CB,ENSP` and use `--threshold-mode relative_to_mean` if the high-pause definition should be relative to each group mean.
 
 ## Smoke Demo
 

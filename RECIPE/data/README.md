@@ -44,6 +44,22 @@ Build the Module C mouse coexpression matrix with:
 python scripts/prepare_public_data.py --data-root data --build-mouse-coexpression
 ```
 
+## Pausing Data
+
+The pausing CSV files can be regenerated from CDS annotations and Ribo-seq BAM files with:
+
+```bash
+python scripts/compute_pausing.py score-bam \
+  --cds-csv data/pausing/cds_annotations.csv \
+  --bam /path/to/riboseq.sorted.bam \
+  --score-csv outputs/pausing/pause_scores.csv
+
+python scripts/compute_pausing.py summarize \
+  --scores-csv outputs/pausing/pause_scores.csv \
+  --summary-cds-csv data/pausing/cds_annotations.csv \
+  --output-csv outputs/pausing/high_pause_counts.csv
+```
+
 Track these with Git LFS:
 
 - `data/bulk/human_sequence_known.npy`

@@ -16,6 +16,7 @@ Data construction entry points:
 
 - `scripts/prepare_public_data.py`: check reproduction inputs and build derived files used by the reproduction commands.
 - `scripts/build_data_aliases.py`: rebuild data aliases from `RECIPE_SOURCE_DATA_ROOT`.
+- `scripts/compute_pausing.py`: compute per-position pausing scores from CDS annotations and BAM files, then summarize high-pause counts.
 - `scripts/build_bulk_features.py`: export bulk feature tables.
 - `scripts/build_coexpression.py`: rebuild a coexpression matrix.
 - `scripts/build_single_cell_inputs.py`: normalize the single-cell expression matrix.

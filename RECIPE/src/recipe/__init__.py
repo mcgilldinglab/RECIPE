@@ -9,6 +9,11 @@ from .config import (
     get_bulk_task_config,
 )
 from .models import CPPI, RBULK, RSCHead
+from .pausing import (
+    compute_pause_scores_from_bam,
+    summarize_high_pause_counts,
+    write_pause_scores_from_bam,
+)
 from .single_cell_rnaseq_workflow import (
     run_phase0 as run_rnaseq_phase0,
     run_phase12 as run_rnaseq_phase12,
@@ -27,6 +32,9 @@ __all__ = [
     "RBULK",
     "CPPI",
     "RSCHead",
+    "compute_pause_scores_from_bam",
+    "summarize_high_pause_counts",
+    "write_pause_scores_from_bam",
     "run_rnaseq_phase0",
     "run_rnaseq_phase12",
     "run_rnaseq_phase3",
