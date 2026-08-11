@@ -85,9 +85,29 @@ def merge_multiple_pause_files(
     return merged
 
 
+def load_ppi_matrix(ppi_path: Union[str, Path]) -> sp.coo_matrix:
+    path = Path(ppi_path).expanduser().resolve()
+    if path.suffix.lower() == ".npz":
+        matrix = sp.load_npz(path).tocoo().astype(np.float32)
+    elif path.suffix.lower() == ".csv":
+        frame = pd.read_csv(path)
+        try:
+            values = frame.to_numpy(dtype=np.float32)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"PPI CSV must contain only numeric matrix values: {path}") from exc
+        matrix = sp.coo_matrix(values)
+    else:
+        raise ValueError(f"Unsupported PPI format '{path.suffix}'; use a numeric CSV or SciPy sparse NPZ file.")
+
+    if matrix.shape[0] != matrix.shape[1]:
+        raise ValueError(f"PPI matrix must be square, but {path} has shape {matrix.shape}.")
+    if not np.isfinite(matrix.data).all():
+        raise ValueError(f"PPI matrix contains non-finite values: {path}")
+    return matrix
+
+
 def load_ppi_graph(ppi_csv_path: Union[str, Path], add_loops: bool = True):
-    ppi_matrix = pd.read_csv(ppi_csv_path)
-    edge_index, edge_weight = from_scipy_sparse_matrix(sp.coo_matrix(ppi_matrix).astype("float32"))
+    edge_index, edge_weight = from_scipy_sparse_matrix(load_ppi_matrix(ppi_csv_path))
     if add_loops:
         edge_index, edge_weight = add_self_loops(edge_index, edge_weight)
     return edge_index, edge_weight

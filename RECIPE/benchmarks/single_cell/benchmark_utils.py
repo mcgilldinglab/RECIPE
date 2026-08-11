@@ -3,9 +3,8 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
-import anndata as ad
 import numpy as np
 import pandas as pd
 from scipy.stats import pearsonr, spearmanr
@@ -16,11 +15,21 @@ from sklearn.model_selection import train_test_split
 
 def read_expression_matrix(
     expression_csv: Path,
-    transcript_column: str = "transcript_id",
+    transcript_column: str | None = None,
     drop_columns: Iterable[str] = ("Unnamed: 0", "scribo"),
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     df = pd.read_csv(expression_csv).fillna(0)
-    if transcript_column not in df.columns:
+    if transcript_column is None:
+        transcript_column = next(
+            (column for column in ("transcript_id", "Unnamed: 0", "protein_id") if column in df.columns),
+            None,
+        )
+        if transcript_column is None:
+            raise ValueError(
+                f"Could not detect a transcript column in {expression_csv}; "
+                "use --transcript-column to specify it."
+            )
+    elif transcript_column not in df.columns:
         raise ValueError(f"Missing transcript column '{transcript_column}' in {expression_csv}")
 
     gene_ids = df[transcript_column].astype(str).str.split(".").str[0].to_numpy()
@@ -135,7 +144,9 @@ def create_anndata(
     obs_names: Iterable[str],
     transcript_ids: Iterable[str],
     myid_map: dict[str, str] | None = None,
-) -> ad.AnnData:
+) -> Any:
+    import anndata as ad
+
     transcript_ids = [str(x) for x in transcript_ids]
     myid_map = myid_map or {}
     my_ids = [myid_map.get(tx, tx) for tx in transcript_ids]

@@ -12,12 +12,6 @@ Packaged module entry points:
 - `scripts/run_module_d.py`: module D; choose `--assay scriboseq` for scRibo-seq input or `--assay scrnaseq` for scRNA-seq input.
 - `scripts/run_recipe.py`: combined multi-module runner.
 
-Module D scRNA-seq phase scripts:
-
-- `scripts/rnaseq/train_phase0_ensmusp_pseudobulk_raw_bulkprot.py`: scRNA-seq branch phase0 bulk module.
-- `scripts/rnaseq/train_phase12_ensmusp_scRNA_bulkprot.py`: scRNA-seq branch phase12 cell-split RNA pseudo-bulk and phase2 hidden-cache export.
-- `scripts/rnaseq/train_phase3_ensmusp_nanospins_matched.py`: scRNA-seq branch phase3 nanoSPINS matched single-cell protein model.
-
 Data construction entry points:
 
 - `scripts/prepare_public_data.py`: check reproduction inputs and build derived files used by the reproduction commands.

@@ -345,7 +345,13 @@ def main() -> None:
         (expr_cell_by_gene_raw / np.maximum(cell_scale[:, None], 1e-6)) + 1.0
     ).astype(np.float32)
 
-    ppi_matrix = sp.coo_matrix(pd.read_csv(args.ppi_path)).astype(np.float32)
+    ppi_path = Path(args.ppi_path)
+    if ppi_path.suffix.lower() == ".npz":
+        ppi_matrix = sp.load_npz(ppi_path).tocoo().astype(np.float32)
+    else:
+        ppi_matrix = sp.coo_matrix(pd.read_csv(ppi_path)).astype(np.float32)
+    if ppi_matrix.shape != (len(order_ids), len(order_ids)):
+        raise ValueError(f"PPI shape {ppi_matrix.shape} does not match ordered protein rows {len(order_ids)}.")
     edge_index, edge_weight = from_scipy_sparse_matrix(ppi_matrix)
     edge_index, edge_weight = add_self_loops(edge_index, edge_weight)
     edge_index = edge_index.to(device)

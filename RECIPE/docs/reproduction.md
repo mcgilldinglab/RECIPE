@@ -204,13 +204,16 @@ python scripts/run_module_d.py \
 ```bash
 python scripts/run_module_d.py \
   --assay scrnaseq \
-  --steps phase0,phase12,phase3 \
-  --rnaseq-phase0-args="--bundle-dir ${SCRNASEQ_BUNDLE_DIR} --ppi-path ${SCRNASEQ_PPI_CSV} --output-dir ${OUTPUT_ROOT}/module_d_scrnaseq/phase0 --seed 8 --device auto" \
-  --rnaseq-phase12-args="--bundle-dir ${SCRNASEQ_BUNDLE_DIR} --phase0-summary ${OUTPUT_ROOT}/module_d_scrnaseq/phase0/summary.json --phase0-model ${OUTPUT_ROOT}/module_d_scrnaseq/phase0/best_model.pth --ppi-path ${SCRNASEQ_PPI_CSV} --output-root ${OUTPUT_ROOT}/module_d_scrnaseq/phase12 --seed 0 --device auto" \
-  --rnaseq-phase3-args="--bundle-dir ${SCRNASEQ_BUNDLE_DIR} --hidden-cache-root ${OUTPUT_ROOT}/module_d_scrnaseq/phase2_hidden_cache --truth-csv ${NANOSPINS_TRUTH_CSV} --mapping-xlsx ${NANOSPINS_MAPPING_XLSX} --output-root ${OUTPUT_ROOT}/module_d_scrnaseq/phase3 --seed 0 --device auto"
+  --scrnaseq-bundle-dir "${SCRNASEQ_BUNDLE_DIR}" \
+  --scrnaseq-ppi-path "${SCRNASEQ_PPI_PATH}" \
+  --nanospins-truth-csv "${NANOSPINS_TRUTH_CSV}" \
+  --nanospins-mapping-xlsx "${NANOSPINS_MAPPING_XLSX}" \
+  --seed 0 \
+  --device auto \
+  --output-dir "${OUTPUT_ROOT}/module_d_scrnaseq"
 ```
 
-For the scRNA-seq option, set `SCRNASEQ_BUNDLE_DIR`, `SCRNASEQ_PPI_CSV`, `NANOSPINS_TRUTH_CSV`, and `NANOSPINS_MAPPING_XLSX` to the corresponding local data files before running.
+For the scRNA-seq option, set `SCRNASEQ_BUNDLE_DIR`, `SCRNASEQ_PPI_PATH`, `NANOSPINS_TRUTH_CSV`, and `NANOSPINS_MAPPING_XLSX` to the corresponding local inputs before running. The PPI path may be a numeric CSV or SciPy sparse NPZ matrix.
 
 ## One-Command Pipeline
 
@@ -236,7 +239,7 @@ python scripts/run_recipe.py \
   --output-root "${OUTPUT_ROOT}/all_modules"
 ```
 
-In this combined command, `--species mouse` applies to Modules A-C. `--single-cell-assay scriboseq` makes Module D use the human scRibo-seq transfer inputs listed above. Use `--single-cell-assay scrnaseq` plus the `--rnaseq-phase0-args`, `--rnaseq-phase12-args`, and `--rnaseq-phase3-args` forwarding options for the scRNA-seq branch. When Module A and Module C are run together with `--bulk-train`, Module C uses `${OUTPUT_ROOT}/all_modules/module_a/model.pth`. Without `--bulk-train`, Module C falls back to the bundled known-protein bulk checkpoint.
+In this combined command, `--species mouse` applies to Modules A-C. `--single-cell-assay scriboseq` makes Module D use the human scRibo-seq transfer inputs listed above. Use the dedicated `run_module_d.py --assay scrnaseq` command above for the scRNA-seq workflow. When Module A and Module C are run together with `--bulk-train`, Module C uses `${OUTPUT_ROOT}/all_modules/module_a/model.pth`. Without `--bulk-train`, Module C falls back to the bundled known-protein bulk checkpoint.
 
 Add `--bulk-train` to retrain Modules A and B, `--bulk-max-epochs`, `--bulk-patience`, and `--bulk-learning-rate` to change bulk training, and `--train-edge-classifier`, `--edge-max-epochs`, and `--edge-patience` to change Module C training. Module D branch-specific options are controlled through `run_module_d.py`.
 
