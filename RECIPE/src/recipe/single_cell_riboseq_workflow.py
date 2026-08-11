@@ -7,7 +7,6 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from scipy import sparse as sp
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -16,7 +15,6 @@ from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import NearestNeighbors
 from torch_geometric.data import Data
-from torch_geometric.utils import from_scipy_sparse_matrix
 
 from .bulk_data import (
     strip_version,
@@ -133,8 +131,7 @@ def _build_notebook_phase0_data(
     x_values = np.log2((merged_df2[["rNC2"]].values / np.median(merged_df3[["rNC2"]].values)) + 1.0)
     y_values = np.log2((merged_df2[["NC3"]].values / np.median(merged_df3[["NC3"]].values)) + 1.0)
     sequence_embedding = np.load(raw_sequence_npy)
-    ppi_matrix = pd.read_csv(raw_ppi_csv)
-    edge_index, edge_weight = from_scipy_sparse_matrix(sp.coo_matrix(ppi_matrix).astype("float32"))
+    edge_index, edge_weight = load_ppi_graph(raw_ppi_csv, add_loops=False)
 
     data = Data(
         x=torch.tensor(x_values, dtype=torch.float32),
@@ -269,7 +266,7 @@ def _run_notebook_self_learning(
     train_idx = initial_labeled_idx.clone()
     current_pool = pool_idx.clone()
 
-    print(f"初始训练集大小: {len(train_idx)}")
+    print(f"Initial training set size: {len(train_idx)}")
     _notebook_seed_everything(seed)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     initial_fit = _notebook_train_model(
@@ -294,7 +291,7 @@ def _run_notebook_self_learning(
 
     for round_num in range(max_rounds):
         if len(current_pool) == 0:
-            print("没有更多未标记样本，结束Self-Learning。")
+            print("No unlabeled samples remain; self-training is complete.")
             break
 
         model.eval()
@@ -308,7 +305,10 @@ def _run_notebook_self_learning(
         train_idx = torch.cat([train_idx, selected_idx], dim=0)
         current_pool = current_pool[select_size:]
 
-        print(f"第{round_num+1}轮: 添加{select_size}个伪标签样本，总训练集大小{len(train_idx)}")
+        print(
+            f"Self-training round {round_num + 1}: added {select_size} pseudo-labeled samples; "
+            f"training set size is now {len(train_idx)}"
+        )
         optimizer = optim.Adam(model.parameters(), lr=learning_rate)
         fit_result = _notebook_train_model(
             model=model,
@@ -331,7 +331,7 @@ def _run_notebook_self_learning(
         )
 
     val_metrics = _notebook_evaluate_model(model, data, val_idx, working_target)
-    print(f"最终验证集Loss: {val_metrics['loss']:.4f}, 验证集R²: {val_metrics['r2']:.4f}")
+    print(f"Final validation loss: {val_metrics['loss']:.4f}, validation R2: {val_metrics['r2']:.4f}")
     return model, working_target, {
         "style": "notebook_self_learning_process",
         "val_metrics": val_metrics,
@@ -1193,18 +1193,18 @@ def run_single_cell_phase2(
         print("[Phase2] training shared global cell graph")
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
         best_state = deepcopy(model.state_dict())
-        best_test_r2 = float("-inf")
+        best_val_r2 = float("-inf")
         patience_counter = 0
 
         for epoch in range(1, max_epochs + 1):
             train_loss, train_r2 = _train_rsc_epoch(
                 model, optimizer, all_z_array, edge_index, label_tensor, rich_mask, train_ids, device, batch_size
             )
-            test_loss, test_r2 = _evaluate_rsc(
-                model, all_z_array, edge_index, label_tensor, rich_mask, test_ids, device, batch_size
-            )
             val_loss, val_r2 = _evaluate_rsc(
                 model, all_z_array, edge_index, label_tensor, rich_mask, val_ids, device, batch_size
+            )
+            test_loss, test_r2 = _evaluate_rsc(
+                model, all_z_array, edge_index, label_tensor, rich_mask, test_ids, device, batch_size
             )
             history.append(
                 {
@@ -1223,12 +1223,12 @@ def run_single_cell_phase2(
                     f"Val Loss: {val_loss:.3f}, Val R²: {val_r2:.3f} | "
                     f"Test Loss: {test_loss:.3f}, Test R²: {test_r2:.3f}"
                 )
-            if test_r2 > best_test_r2:
+            if val_r2 > best_val_r2:
                 best_state = deepcopy(model.state_dict())
                 best_epoch = epoch
-                best_test_r2 = test_r2
+                best_val_r2 = val_r2
                 patience_counter = 0
-                print(f"[Phase2] New best model at epoch {epoch}: test_r2={test_r2:.3f}, val_r2={val_r2:.3f}")
+                print(f"[Phase2] New best model at epoch {epoch}: val_r2={val_r2:.3f}")
             else:
                 patience_counter += 1
                 if patience_counter >= patience:
@@ -1281,7 +1281,7 @@ def run_single_cell_phase2(
             "val": int(len(val_ids)),
             "test": int(len(test_ids)),
         },
-        "selection_metric": "test_r2",
+        "selection_metric": "val_r2",
         "train_metrics": {"loss": train_loss, "r2": train_r2},
         "val_metrics": {"loss": val_loss, "r2": val_r2},
         "test_metrics": {"loss": test_loss, "r2": test_r2},

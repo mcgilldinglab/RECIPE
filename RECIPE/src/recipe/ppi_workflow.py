@@ -24,10 +24,14 @@ from .utils import resolve_device, save_json, set_seed
 
 
 def _filter_new_edges(candidate_edges: torch.Tensor, candidate_scores: torch.Tensor, known_edges: torch.Tensor):
-    known_pairs = {tuple(pair) for pair in known_edges.t().cpu().numpy().tolist()}
+    known_pairs = {
+        (min(int(source), int(target)), max(int(source), int(target)))
+        for source, target in known_edges.t().cpu().numpy().tolist()
+    }
     keep_indices = []
-    for idx, pair in enumerate(candidate_edges.t().cpu().numpy().tolist()):
-        if tuple(pair) not in known_pairs:
+    for idx, (source, target) in enumerate(candidate_edges.t().cpu().numpy().tolist()):
+        pair = (min(int(source), int(target)), max(int(source), int(target)))
+        if pair not in known_pairs:
             keep_indices.append(idx)
 
     if not keep_indices:
@@ -57,7 +61,7 @@ def _default_edge_checkpoint(species: str, model_root: str | Path | None = None)
     return Path(model_root).expanduser().resolve() / "ppi" / checkpoint.name
 
 
-def _read_candidate_edges_csv(path: str | Path) -> tuple[torch.Tensor, torch.Tensor]:
+def _read_candidate_edges_csv(path: str | Path) -> tuple[torch.Tensor, torch.Tensor | None]:
     df = pd.read_csv(path)
     if {"node1", "node2"}.issubset(df.columns):
         src_col, dst_col = "node1", "node2"
@@ -66,13 +70,26 @@ def _read_candidate_edges_csv(path: str | Path) -> tuple[torch.Tensor, torch.Ten
     else:
         raise ValueError("Candidate edge CSV must contain node1/node2 or source/target columns.")
 
-    edge_index = torch.tensor(df[[src_col, dst_col]].to_numpy(dtype=np.int64).T, dtype=torch.long)
+    endpoints = df[[src_col, dst_col]].apply(pd.to_numeric, errors="coerce")
+    if endpoints.isna().any().any():
+        raise ValueError("Candidate edge endpoints must be integer node indices.")
+    endpoint_values = endpoints.to_numpy(dtype=np.float64)
+    if not np.equal(endpoint_values, np.floor(endpoint_values)).all():
+        raise ValueError("Candidate edge endpoints must be integer node indices.")
+    edge_index = torch.tensor(endpoint_values.astype(np.int64).T, dtype=torch.long)
     score_col = "probability" if "probability" in df.columns else "score" if "score" in df.columns else None
     if score_col is None:
-        scores = torch.full((edge_index.size(1),), float("nan"), dtype=torch.float32)
+        scores = None
     else:
         scores = torch.tensor(pd.to_numeric(df[score_col], errors="coerce").to_numpy(dtype=np.float32))
     return edge_index, scores
+
+
+def _validate_candidate_edges(candidate_edges: torch.Tensor, node_count: int) -> None:
+    if candidate_edges.ndim != 2 or candidate_edges.size(0) != 2:
+        raise ValueError("Candidate edges must have shape [2, edge_count].")
+    if candidate_edges.numel() and (candidate_edges.min().item() < 0 or candidate_edges.max().item() >= node_count):
+        raise ValueError(f"Candidate edge endpoint is outside the valid node range [0, {node_count - 1}].")
 
 
 def run_ppi_refinement(
@@ -174,6 +191,18 @@ def run_ppi_refinement(
     candidate_source = "inferred"
     if candidate_edge_csv:
         candidate_edges, candidate_scores = _read_candidate_edges_csv(candidate_edge_csv)
+        _validate_candidate_edges(candidate_edges, int(node_embeddings.size(0)))
+        model_scores = score_edge_index(
+            model=edge_model,
+            node_embeddings=node_embeddings,
+            edge_index=candidate_edges,
+            device=device,
+        )
+        if candidate_scores is None:
+            candidate_scores = model_scores
+        else:
+            missing_scores = ~torch.isfinite(candidate_scores)
+            candidate_scores[missing_scores] = model_scores[missing_scores]
         candidate_source = "csv"
     elif skip_candidate_inference:
         candidate_edges = torch.empty((2, 0), dtype=torch.long)

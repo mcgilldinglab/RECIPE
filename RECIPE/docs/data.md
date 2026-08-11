@@ -36,10 +36,10 @@ This file is required only for the human unknown-protein workflow and is not sto
 
 - `data/networks/human_ppi_unknown.csv`
 
-Download the compressed graph from [Google Drive](https://drive.google.com/file/d/1UIefENLMUvWTJ9K8jxVmuGdPFD4Vtnrc/view?usp=sharing). The compressed file is 3,306,294,128 bytes (3.08 GiB) and expands to about 54 GB. Its SHA-256 checksum is:
+Download the compressed graph from [Google Drive](https://drive.google.com/file/d/1UIefENLMUvWTJ9K8jxVmuGdPFD4Vtnrc/view?usp=sharing). The compressed file is 3,957,792 bytes (3.77 MiB) and expands to 101,765,398 bytes (97.05 MiB). Its SHA-256 checksum is:
 
 ```text
-2c7b7cd3e3ca7de35354aa81a6caf34c37da8d4e20406329b49bde09dd48704e
+56d278c0244f1288989d9a0be929e8cd96deab0d4e0fdd1ecd4ff8596d73e95b
 ```
 
 From the package directory (`RECIPE/RECIPE`), download, verify, and extract it with:
@@ -50,12 +50,12 @@ curl --location --fail --retry 3 --continue-at - \
   'https://drive.usercontent.google.com/download?id=1UIefENLMUvWTJ9K8jxVmuGdPFD4Vtnrc&export=download&confirm=t' \
   --output data/networks/human_ppi_unknown.csv.gz
 printf '%s  %s\n' \
-  '2c7b7cd3e3ca7de35354aa81a6caf34c37da8d4e20406329b49bde09dd48704e' \
+  '56d278c0244f1288989d9a0be929e8cd96deab0d4e0fdd1ecd4ff8596d73e95b' \
   'data/networks/human_ppi_unknown.csv.gz' | sha256sum --check -
 gzip --decompress --keep data/networks/human_ppi_unknown.csv.gz
 ```
 
-Keep at least 60 GB of free disk space for the compressed and extracted copies. For publication, a stable archive such as Zenodo, Figshare, OSF, or an institutional repository is preferable to Google Drive.
+Keep at least 200 MiB of free disk space for the compressed and extracted copies. For publication, a stable archive such as Zenodo, Figshare, OSF, or an institutional repository is preferable to Google Drive.
 
 ## Data Preparation
 

@@ -23,6 +23,18 @@ dependencies = [
   "typing_extensions>=4.9",
 ]
 
+[project.optional-dependencies]
+benchmarks = [
+  "anndata>=0.9",
+  "scanpy>=1.9",
+]
+test = [
+  "pytest>=7.4",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 

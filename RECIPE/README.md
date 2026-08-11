@@ -32,7 +32,7 @@ Tested environment on the local `pyg` conda environment:
 - CUDA availability during test: `True`.
 - Other tested Python packages: `numpy 1.24.3`, `pandas 2.0.3`, `pysam 0.22.1`, `scipy 1.10.1`, `scikit-learn 1.3.2`, `matplotlib 3.6.3`, `networkx 3.1`, `seaborn 0.13.2`, `openpyxl 3.1.5`, `typing_extensions 4.9.0`.
 
-Package metadata supports Python `>=3.8`. The smoke demo runs on CPU. Full-size training and inference are much faster with an NVIDIA GPU; `--device auto` uses `cuda:0` when available and falls back to CPU. The external human unknown PPI graph is about 54 GB after extraction, so that workflow needs substantially more disk and memory than the smoke demo or mouse examples.
+Package metadata supports Python `>=3.8`. The smoke demo runs on CPU. Full-size training and inference are much faster with an NVIDIA GPU; `--device auto` uses `cuda:0` when available and falls back to CPU. The external human unknown PPI graph is about 97 MiB after extraction.
 
 No non-standard hardware is required for installation or the smoke demo. A CUDA-capable GPU is recommended for full model training on the large graph assets.
 
@@ -75,7 +75,7 @@ The repository includes a small simulated demo dataset:
 - `examples/smoke_data/sequence_embeddings.csv`
 - `examples/smoke_data/ppi_matrix.csv`
 
-Runtime data are under `data/`. Large files and pretrained checkpoints are tracked with Git LFS. The full `data/networks/human_ppi_unknown.csv` is not committed because it is about 54 GB after extraction. Download its compressed copy from [Google Drive](https://drive.google.com/file/d/1UIefENLMUvWTJ9K8jxVmuGdPFD4Vtnrc/view?usp=sharing) and follow the checksum and extraction instructions in [`docs/data.md`](docs/data.md#external-human-ppi-graph).
+Runtime data are under `data/`. Large files and pretrained checkpoints are tracked with Git LFS. The full `data/networks/human_ppi_unknown.csv` is distributed separately. Download its compressed copy from [Google Drive](https://drive.google.com/file/d/1UIefENLMUvWTJ9K8jxVmuGdPFD4Vtnrc/view?usp=sharing) and follow the checksum and extraction instructions in [`docs/data.md`](docs/data.md#external-human-ppi-graph).
 
 ## Pausing Feature Calculation
 
@@ -231,7 +231,7 @@ For bulk workflows, prepare:
 
 - A reference CSV with one row per transcript or protein. It must include a transcript identifier column and the feature columns used as model inputs, for example RNA-seq, Ribo-seq, or other translation-related measurements. If supervised training is needed, include a protein abundance target column. A pausing-count column can also be used when available.
 - A sequence embedding `.npy` file whose row count and order match the reference CSV.
-- A square PPI adjacency CSV whose dimensions match the number of reference rows.
+- A square numeric PPI adjacency matrix in CSV or SciPy sparse NPZ format whose dimensions match the number of reference rows.
 
 Column names are not fixed by the package. The bundled configs use names such as `rNC2`, `rKD2`, `NC3`, and `KD3` only because those are the column names in the example datasets. For new data, pass your own input, target, and optional pausing columns on the command line, or define a `BulkConditionSpec` and call `build_bulk_graph_from_dataframe` from Python.
 

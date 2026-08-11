@@ -17,6 +17,8 @@ The reusable Python wrappers included in this repository are:
 
 These wrappers expect explicit input paths and do not contain local absolute paths as defaults.
 
+Install the optional benchmark dependencies with `python -m pip install -e ".[benchmarks]"`. Expression tables may use `transcript_id`, `protein_id`, or `Unnamed: 0` as the identifier column. For another name, pass `--transcript-column COLUMN`.
+
 ## scTranslator
 
 scTranslator is not vendored into RECIPE. Use a separate scTranslator checkout and its pretrained checkpoint. The local fine-tuning command was:
@@ -39,11 +41,14 @@ After fine-tuning, run RECIPE's wrapper:
 python benchmarks/single_cell/run_sctranslator_chunked_inference.py \
   --repo-root /path/to/scTranslator \
   --checkpoint /path/to/fine_tuned_sctranslator.pt \
+  --base-checkpoint /path/to/scTranslator/checkpoint/stage2_single-cell_scTranslator.pt \
   --data-dir outputs/benchmarks/sctranslator_inputs \
   --seed 12 \
   --device cuda:0 \
   --output-dir outputs/benchmarks/sctranslator
 ```
+
+The upstream fine-tuning script saves model weights rather than a complete model object, so `--base-checkpoint` supplies the architecture used to load those weights. It may be omitted only when `--checkpoint` already contains a complete PyTorch model.
 
 ## KRR And VanillaNN
 

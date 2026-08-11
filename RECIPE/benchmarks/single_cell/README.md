@@ -7,10 +7,12 @@ They do not include raw data, trained scTranslator checkpoints, or local result 
 
 Prepare these files before running the wrappers:
 
-- A gene-by-cell expression CSV with a `transcript_id` column.
+- A gene-by-cell expression CSV. Identifier columns named `transcript_id`, `protein_id`, or `Unnamed: 0` are detected automatically; otherwise pass `--transcript-column`.
 - A protein mapping CSV with transcript IDs and protein target values.
 - A bulk reference CSV containing the protein target column used for alignment. The examples below use `NC3`; replace it with the target column in your table.
 - For scTranslator only: a local checkout of the upstream scTranslator repository and its pretrained checkpoint.
+
+Install the optional input-export dependencies with `python -m pip install -e ".[benchmarks]"` from the package root.
 
 ## Export scTranslator Inputs
 
@@ -59,11 +61,14 @@ Use the upstream scTranslator fine-tuning command from its own repository, then 
 python run_sctranslator_chunked_inference.py \
   --repo-root /path/to/scTranslator \
   --checkpoint /path/to/fine_tuned_sctranslator.pt \
+  --base-checkpoint /path/to/scTranslator/checkpoint/stage2_single-cell_scTranslator.pt \
   --data-dir outputs/benchmarks/sctranslator_inputs \
   --seed 12 \
   --device cuda:0 \
   --output-dir outputs/benchmarks/sctranslator
 ```
+
+Use `--base-checkpoint` when the fine-tuned checkpoint contains only a state dictionary, as produced by the upstream fine-tuning script. It is not needed for a checkpoint containing a complete PyTorch model.
 
 The upstream fine-tuning command used in the local benchmark was:
 

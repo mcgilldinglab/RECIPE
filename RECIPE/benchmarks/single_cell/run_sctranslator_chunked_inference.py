@@ -8,7 +8,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import scanpy as sc
 import torch
 from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import r2_score
@@ -21,6 +20,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--repo-root", type=Path, required=True)
     parser.add_argument("--checkpoint", type=Path, required=True)
+    parser.add_argument(
+        "--base-checkpoint",
+        type=Path,
+        default=None,
+        help="Full pretrained model required when --checkpoint contains only a state dictionary.",
+    )
     parser.add_argument("--data-dir", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--seed", type=int, default=0)
@@ -33,7 +38,50 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _extract_state_dict(payload: object) -> dict[str, torch.Tensor] | None:
+    if not isinstance(payload, dict):
+        return None
+    for key in ("model_state_dict", "state_dict"):
+        value = payload.get(key)
+        if isinstance(value, dict) and all(isinstance(item, torch.Tensor) for item in value.values()):
+            return value
+    if payload and all(isinstance(item, torch.Tensor) for item in payload.values()):
+        return payload
+    return None
+
+
+def load_sctranslator_model(
+    checkpoint: Path,
+    base_checkpoint: Path | None,
+    device: torch.device,
+) -> torch.nn.Module:
+    payload = torch.load(checkpoint, map_location="cpu")
+    if isinstance(payload, torch.nn.Module):
+        return payload.to(device)
+
+    state_dict = _extract_state_dict(payload)
+    if state_dict is None:
+        raise TypeError(f"Unsupported scTranslator checkpoint payload: {checkpoint}")
+    if base_checkpoint is None:
+        raise ValueError("--base-checkpoint is required when --checkpoint contains only model weights.")
+
+    base_payload = torch.load(base_checkpoint, map_location="cpu")
+    if isinstance(base_payload, torch.nn.Module):
+        model = base_payload
+    elif isinstance(base_payload, dict) and isinstance(base_payload.get("model"), torch.nn.Module):
+        model = base_payload["model"]
+    else:
+        raise TypeError(f"Base checkpoint must contain a complete model object: {base_checkpoint}")
+
+    if state_dict and all(key.startswith("module.") for key in state_dict):
+        state_dict = {key[len("module.") :]: value for key, value in state_dict.items()}
+    model.load_state_dict(state_dict, strict=True)
+    return model.to(device)
+
+
 def main() -> None:
+    import scanpy as sc
+
     args = parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -46,7 +94,7 @@ def main() -> None:
     setup_seed(args.seed + args.repeat)
 
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
-    model = torch.load(args.checkpoint, map_location="cpu").to(device)
+    model = load_sctranslator_model(args.checkpoint, args.base_checkpoint, device)
 
     all_truth = []
     all_pred = []
@@ -125,4 +173,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

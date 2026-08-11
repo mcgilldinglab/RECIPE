@@ -43,6 +43,7 @@ class VanillaNN(nn.Module):
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the notebook-style single-cell VanillaNN benchmark.")
     parser.add_argument("--expression-csv", type=Path, required=True)
+    parser.add_argument("--transcript-column", default=None)
     parser.add_argument("--protein-map-csv", type=Path, required=True)
     parser.add_argument("--bulk-table-csv", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
@@ -71,7 +72,7 @@ def main() -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     set_seed(args.seed)
 
-    gene_ids, _, matrix = read_expression_matrix(args.expression_csv)
+    gene_ids, _, matrix = read_expression_matrix(args.expression_csv, transcript_column=args.transcript_column)
     protein_map_df = read_protein_map(args.protein_map_csv)
     y, _ = build_aligned_targets(
         gene_ids=gene_ids,
@@ -176,4 +177,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
