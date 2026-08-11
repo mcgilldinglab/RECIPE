@@ -26,10 +26,9 @@ OUTPUT_ROOT="${PWD}/outputs/reproduce"
 
 ## Data Preparation
 
-Download Git LFS files, create derived inputs when needed, and check that the reproduction files are present:
+Create derived inputs when needed and check that the reproduction files are present:
 
 ```bash
-git lfs pull
 python scripts/prepare_public_data.py \
   --data-root "${DATA_ROOT}" \
   --model-root "${MODEL_ROOT}" \
@@ -52,7 +51,7 @@ If the fixed split files need to be regenerated, run:
 python scripts/build_training_splits.py --output-dir "${DATA_ROOT}/splits"
 ```
 
-The human unknown-protein workflow additionally requires the external file `${DATA_ROOT}/networks/human_ppi_unknown.csv`. Download the compressed graph from [Google Drive](https://drive.google.com/file/d/1UIefENLMUvWTJ9K8jxVmuGdPFD4Vtnrc/view?usp=sharing), then follow the checksum and extraction instructions in [`data.md`](data.md#external-human-ppi-graph).
+The complete data inventory and external download instructions are in [`data.md`](data.md).
 
 ## Quick Check
 
@@ -250,9 +249,3 @@ Train/validation/test split files are included under `data/splits/`. The data pr
 The example bulk data use column names such as `rNC2`, `rKD2`, `NC3`, and `KD3`, but these names are not required. For Modules A-C, pass `--input-col`, `--target-col`, and optionally `--pause-col` to select columns in your own reference CSV. The input column can contain RNA-seq, Ribo-seq, or another transcript-level feature. Use `--no-pause` when no pausing-count column is available.
 
 For the combined runner, use the matching bulk arguments: `--bulk-input-col`, `--bulk-target-col`, `--bulk-pause-col`, and `--no-bulk-pause`.
-
-## Notes
-
-- The mouse workflows can be reproduced from files included in the repository.
-- The human unknown workflow requires the externally downloaded `data/networks/human_ppi_unknown.csv`, which is about 54 GB after extraction; see [`data.md`](data.md#external-human-ppi-graph).
-- Full-size model training is intended for a CUDA-capable GPU. The tested full workflows were run on one NVIDIA RTX 4090 GPU.

@@ -13,13 +13,7 @@ The smoke demo dataset contains:
 - `examples/smoke_data/sequence_embeddings.csv`
 - `examples/smoke_data/ppi_matrix.csv`
 
-Run it with:
-
-```bash
-python scripts/run_smoke_demo.py --device cpu --output-dir outputs/smoke_demo
-```
-
-Expected run time: under 1 minute. The tested `pyg` CPU run completed in about 4.7 seconds wall time.
+The quick-check command and expected outputs are documented in [`reproduction.md`](reproduction.md#quick-check).
 
 ## Large Files
 
@@ -65,27 +59,4 @@ Keep at least 60 GB of free disk space for the compressed and extracted copies. 
 
 ## Data Preparation
 
-After cloning, download Git LFS files and check the reproduction inputs:
-
-```bash
-git lfs pull
-python scripts/prepare_public_data.py --data-root data --model-root models --manifest-json outputs/reproduce/data_preparation.json
-```
-
-To build the mouse coexpression matrix used in Module C summaries:
-
-```bash
-python scripts/prepare_public_data.py --data-root data --model-root models --build-mouse-coexpression
-```
-
-## Explicit Reproduction Inputs
-
-The public reproduction commands pass these input paths explicitly under `DATA_ROOT`:
-
-- Module A: known-protein bulk prediction with `bulk/{human,mouse}_reference.csv`, `bulk/{human,mouse}_sequence_known.npy`, and `networks/{human,mouse}_ppi_known.csv`.
-- Module B: unknown-protein bulk inference with `bulk/{human,mouse}_reference.csv`, `bulk/{human,mouse}_sequence_unknown.npy`, and `networks/{human,mouse}_ppi_unknown.csv`. The human unknown PPI graph is external and not distributed through GitHub.
-- Module C: PPI refinement with known-protein bulk inputs, optional generated `networks/{human,mouse}_coexpression.csv`, plus a Module A known-protein checkpoint such as `models/bulk/mouse_known_seed5.pth` or `outputs/reproduce/module_a_mouse_known/model.pth`.
-- Module D scRibo-seq branch: `bulk/human_reference.csv`, `bulk/single_cell_transfer_sequence.npy`, `networks/single_cell_transfer_ppi.csv`, `pausing/cds_annotations.csv`, `pausing/human_nc2_pause.csv`, `pausing/fraction_rich_pause.csv`, `pausing/pseudobulk_pause_matrix.csv`, `single_cell/expression_raw.csv`, `single_cell/expression_normalized.csv`, and `single_cell/metadata.csv`.
-- Module D scRNA-seq branch: an external ENSMUSP scRNA/bulk-protein bundle, the matching PPI CSV, a phase2 hidden-cache directory, and nanoSPINS truth/mapping files passed explicitly to `scripts/run_module_d.py --assay scrnaseq`.
-
-Fixed split reference files are under `data/splits/`.
+Run the preparation, validation, and split-generation commands in [`reproduction.md`](reproduction.md#data-preparation). That page also lists the explicit inputs for each module.
