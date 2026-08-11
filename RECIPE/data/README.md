@@ -16,13 +16,13 @@ Run it from the package root:
 python scripts/run_smoke_demo.py --device cpu --output-dir outputs/smoke_demo
 ```
 
-## GitHub Strategy
+## Large Files
 
-Commit small CSV and metadata files directly. Track large runtime assets with Git LFS when suitable for GitHub.
+Large runtime assets in this directory are tracked with Git LFS when they are distributed through the repository.
 
 ## Training Splits
 
-Fixed train/validation/test split CSV files are stored in `splits/`. They are small enough to commit directly and are used by the training notebooks and command-line runners.
+Fixed train/validation/test split CSV files are stored in `splits/`. They are small enough to commit directly and are used by the command-line runners and optional training references.
 
 Regenerate them with:
 
@@ -62,7 +62,7 @@ python scripts/compute_pausing.py summarize \
 
 The default `--average-denominator length` mode follows the original scripts and uses the `Length` column for average read-depth normalization. Use `--average-denominator positions` when `Length` is not the analyzed CDS length after trimming.
 
-Track these with Git LFS:
+These files are tracked with Git LFS:
 
 - `data/bulk/human_sequence_known.npy`
 - `data/bulk/human_sequence_unknown.npy`
@@ -75,19 +75,10 @@ Track these with Git LFS:
 - `data/networks/single_cell_transfer_ppi.csv`
 - `data/single_cell/cell_embeddings.npy`
 
-Do not upload this file to GitHub:
+This file is external and is not uploaded to GitHub:
 
 - `data/networks/human_ppi_unknown.csv`
 
-That file is about 51-54 GB locally and should stay in external storage.
-
-## Rebuilding Aliases
-
-Set a private source data root that mirrors this `data/` directory layout, then rebuild:
-
-```bash
-export RECIPE_SOURCE_DATA_ROOT=/path/to/source/project
-python scripts/build_data_aliases.py --manifest-json data/alias_manifest.json
-```
+That file is about 51-54 GB locally. It can be shared through Google Drive for review and should be deposited in a stable archive for publication when possible.
 
 For a package installed outside the repository, pass `--data-root /path/to/RECIPE/RECIPE/data` or the file-level input arguments listed in `docs/reproduction.md`.

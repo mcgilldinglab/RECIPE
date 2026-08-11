@@ -9,14 +9,15 @@ from types import ModuleType
 from typing import Sequence
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-PHASE0_SCRIPT = PROJECT_ROOT / "train_phase0_ensmusp_pseudobulk_raw_bulkprot.py"
-PHASE12_SCRIPT = PROJECT_ROOT / "train_phase12_ensmusp_scRNA_bulkprot.py"
-PHASE3_SCRIPT = PROJECT_ROOT / "train_phase3_ensmusp_nanospins_matched.py"
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+RNASEQ_SCRIPT_DIR = PACKAGE_ROOT / "scripts" / "rnaseq"
+PHASE0_SCRIPT = RNASEQ_SCRIPT_DIR / "train_phase0_ensmusp_pseudobulk_raw_bulkprot.py"
+PHASE12_SCRIPT = RNASEQ_SCRIPT_DIR / "train_phase12_ensmusp_scRNA_bulkprot.py"
+PHASE3_SCRIPT = RNASEQ_SCRIPT_DIR / "train_phase3_ensmusp_nanospins_matched.py"
 
 BULK_MODULE_STEP = "Bulk Module"
-RNASEQ_PSEUDOBULK_FINETUNING_STEP = "Phase 1: RNA-seq Pseudo-Bulk Finetuning"
-SINGLE_CELL_PROTEIN_FINETUNING_STEP = "Phase 2: Single-Cell Protein Finetuning"
+RNASEQ_PSEUDOBULK_FINETUNING_STEP = "Phase 12: RNA-seq Pseudo-Bulk/Cell-Graph Finetuning"
+SINGLE_CELL_PROTEIN_FINETUNING_STEP = "Phase 3: nanoSPINS Single-Cell Protein Finetuning"
 
 
 def _load_script_module(script_path: Path) -> ModuleType:
@@ -37,6 +38,8 @@ def _normalize_script_args(script_args: Sequence[str] | None) -> list[str]:
 
 def _run_script_main(script_path: Path, script_args: Sequence[str] | None = None) -> None:
     args = _normalize_script_args(script_args)
+    if not script_path.exists():
+        raise FileNotFoundError(f"Missing scRNA-seq workflow script: {script_path}")
     module = _load_script_module(script_path)
     if not hasattr(module, "main"):
         raise AttributeError(f"{script_path} does not define a main() entry point.")

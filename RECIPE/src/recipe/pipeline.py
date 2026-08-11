@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Sequence
 
 from .bulk_workflow import run_bulk_module
 from .ppi_workflow import run_ppi_refinement
+from .single_cell_rnaseq_workflow import (
+    run_phase0 as run_scrnaseq_phase0,
+    run_phase12 as run_scrnaseq_phase12,
+    run_phase3 as run_scrnaseq_phase3,
+)
 from .single_cell_riboseq_workflow import run_single_cell_transfer
 
 
@@ -29,17 +34,31 @@ def run_recipe_pipeline(
     bulk_learning_rate: float = 7e-2,
     edge_max_epochs: int = 1000,
     edge_patience: int = 50,
+    train_edge_classifier: bool = False,
+    edge_checkpoint_path: str | Path | None = None,
+    candidate_edge_csv: str | Path | None = None,
+    skip_candidate_inference: bool = False,
     train_phase0: bool = False,
     train_phase1: bool = False,
     train_phase2: bool = False,
+    single_cell_assay: str = "scriboseq",
+    phase1_checkpoint: str | Path | None = None,
+    phase2_checkpoint: str | Path | None = None,
     phase0_split_csv: str | Path | None = None,
     phase1_split_csv: str | Path | None = None,
     phase2_split_csv: str | Path | None = None,
+    use_bundled_cell_embeddings: bool = False,
+    rnaseq_phase0_args: Sequence[str] | None = None,
+    rnaseq_phase12_args: Sequence[str] | None = None,
+    rnaseq_phase3_args: Sequence[str] | None = None,
 ) -> dict[str, object]:
     output_root = Path(output_root)
     output_root.mkdir(parents=True, exist_ok=True)
 
     normalized_modules = [module.upper() for module in modules]
+    single_cell_assay = single_cell_assay.lower()
+    if single_cell_assay not in {"scriboseq", "scrnaseq"}:
+        raise ValueError("single_cell_assay must be 'scriboseq' or 'scrnaseq'.")
     summary: dict[str, object] = {}
 
     if "A" in normalized_modules:
@@ -100,8 +119,25 @@ def run_recipe_pipeline(
             use_pause=use_bulk_pause,
             edge_max_epochs=edge_max_epochs,
             edge_patience=edge_patience,
+            train_edge_classifier=train_edge_classifier,
+            edge_checkpoint_path=edge_checkpoint_path,
+            candidate_edge_csv=candidate_edge_csv,
+            skip_candidate_inference=skip_candidate_inference,
         )
-    if "D" in normalized_modules:
+    if "D" in normalized_modules and single_cell_assay.lower() == "scrnaseq":
+        run_scrnaseq_phase0(rnaseq_phase0_args)
+        run_scrnaseq_phase12(rnaseq_phase12_args)
+        run_scrnaseq_phase3(rnaseq_phase3_args)
+        summary["D"] = {
+            "assay": "scrnaseq",
+            "steps": ["phase0", "phase12", "phase3"],
+            "forwarded_args": {
+                "phase0": list(rnaseq_phase0_args or []),
+                "phase12": list(rnaseq_phase12_args or []),
+                "phase3": list(rnaseq_phase3_args or []),
+            },
+        }
+    elif "D" in normalized_modules:
         summary["D"] = run_single_cell_transfer(
             output_dir=output_root / "module_d",
             seed=seed,
@@ -111,9 +147,12 @@ def run_recipe_pipeline(
             train_phase0=train_phase0,
             train_phase1=train_phase1,
             train_phase2=train_phase2,
+            phase1_checkpoint=phase1_checkpoint,
+            phase2_checkpoint=phase2_checkpoint,
             phase0_split_csv=phase0_split_csv,
             phase1_split_csv=phase1_split_csv,
             phase2_split_csv=phase2_split_csv,
+            use_bundled_cell_embeddings=use_bundled_cell_embeddings,
         )
 
     return summary

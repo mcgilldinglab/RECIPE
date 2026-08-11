@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 
 from _bootstrap import add_src_to_path
 
@@ -39,12 +40,28 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--bulk-learning-rate", type=float, default=7e-2)
     parser.add_argument("--edge-max-epochs", type=int, default=1000)
     parser.add_argument("--edge-patience", type=int, default=50)
+    parser.add_argument("--train-edge-classifier", action="store_true")
+    parser.add_argument("--edge-checkpoint-path", default=None)
+    parser.add_argument("--candidate-edge-csv", default=None)
+    parser.add_argument("--skip-candidate-inference", action="store_true")
     parser.add_argument("--train-phase0", action="store_true")
     parser.add_argument("--train-phase1", action="store_true")
     parser.add_argument("--train-phase2", action="store_true")
+    parser.add_argument(
+        "--single-cell-assay",
+        choices=("scriboseq", "scrnaseq"),
+        default="scriboseq",
+        help="Module D input assay. scriboseq uses phase0/phase1/phase2; scrnaseq uses phase0/phase12/phase3.",
+    )
+    parser.add_argument("--phase1-checkpoint", default=None)
+    parser.add_argument("--phase2-checkpoint", default=None)
     parser.add_argument("--phase0-split-csv", default=None)
     parser.add_argument("--phase1-split-csv", default=None)
     parser.add_argument("--phase2-split-csv", default=None)
+    parser.add_argument("--use-bundled-cell-embeddings", action="store_true")
+    parser.add_argument("--rnaseq-phase0-args", default="", help="Shell-style args forwarded to scRNA-seq phase0.")
+    parser.add_argument("--rnaseq-phase12-args", default="", help="Shell-style args forwarded to scRNA-seq phase12.")
+    parser.add_argument("--rnaseq-phase3-args", default="", help="Shell-style args forwarded to scRNA-seq phase3.")
     return parser
 
 
@@ -72,12 +89,23 @@ def main() -> None:
         bulk_learning_rate=args.bulk_learning_rate,
         edge_max_epochs=args.edge_max_epochs,
         edge_patience=args.edge_patience,
+        train_edge_classifier=args.train_edge_classifier,
+        edge_checkpoint_path=args.edge_checkpoint_path,
+        candidate_edge_csv=args.candidate_edge_csv,
+        skip_candidate_inference=args.skip_candidate_inference,
         train_phase0=args.train_phase0,
         train_phase1=args.train_phase1,
         train_phase2=args.train_phase2,
+        single_cell_assay=args.single_cell_assay,
+        phase1_checkpoint=args.phase1_checkpoint,
+        phase2_checkpoint=args.phase2_checkpoint,
         phase0_split_csv=args.phase0_split_csv,
         phase1_split_csv=args.phase1_split_csv,
         phase2_split_csv=args.phase2_split_csv,
+        use_bundled_cell_embeddings=args.use_bundled_cell_embeddings,
+        rnaseq_phase0_args=shlex.split(args.rnaseq_phase0_args),
+        rnaseq_phase12_args=shlex.split(args.rnaseq_phase12_args),
+        rnaseq_phase3_args=shlex.split(args.rnaseq_phase3_args),
     )
     print(json.dumps(json_sanitize(summary), indent=2, ensure_ascii=False, allow_nan=False))
 

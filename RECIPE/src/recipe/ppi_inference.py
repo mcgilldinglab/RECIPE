@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from pathlib import Path
+import __main__
 from typing import Any
 
 import numpy as np
@@ -41,6 +42,107 @@ class EdgeMLP(nn.Module):
     def forward(self, x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
         x = torch.cat((x1, x2), dim=-1)
         return self.mlp(x).view(-1)
+
+
+class LegacyProbabilityMLP(nn.Module):
+    """Compatibility class for PPI checkpoints saved as notebook-local MLP objects."""
+
+    outputs_probabilities = True
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.mlp = nn.Sequential(
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Linear(32, 1),
+            nn.Sigmoid(),
+        )
+
+    def forward(self, x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
+        x = torch.cat((x1, x2), dim=-1)
+        return self.mlp(x).view(-1)
+
+
+def _extract_state_dict(checkpoint: Any) -> dict[str, torch.Tensor] | None:
+    if isinstance(checkpoint, dict):
+        for key in ("model_state_dict", "state_dict"):
+            value = checkpoint.get(key)
+            if isinstance(value, dict):
+                return value
+        if all(isinstance(key, str) for key in checkpoint):
+            tensor_values = [value for value in checkpoint.values() if torch.is_tensor(value)]
+            if tensor_values:
+                return checkpoint
+    return None
+
+
+def _checkpoint_loader_with_legacy_mlp(path: Path, map_location: torch.device | str) -> Any:
+    had_mlp = hasattr(__main__, "MLP")
+    previous_mlp = getattr(__main__, "MLP", None)
+    setattr(__main__, "MLP", LegacyProbabilityMLP)
+    try:
+        try:
+            return torch.load(path, map_location=map_location, weights_only=False)
+        except TypeError:
+            return torch.load(path, map_location=map_location)
+    finally:
+        if had_mlp:
+            setattr(__main__, "MLP", previous_mlp)
+        else:
+            delattr(__main__, "MLP")
+
+
+def load_edge_classifier_checkpoint(
+    checkpoint_path: str | Path,
+    embedding_dim: int,
+    device: torch.device,
+) -> tuple[nn.Module, dict[str, Any]]:
+    path = Path(checkpoint_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Edge-classifier checkpoint not found: {path}")
+
+    checkpoint = _checkpoint_loader_with_legacy_mlp(path, map_location=device)
+    if isinstance(checkpoint, nn.Module):
+        model = checkpoint.to(device)
+        model.eval()
+        return model, {
+            "checkpoint": str(path),
+            "checkpoint_format": "full_model",
+            "model_class": model.__class__.__name__,
+            "outputs_probabilities": bool(edge_model_outputs_probabilities(model)),
+        }
+
+    state_dict = _extract_state_dict(checkpoint)
+    if state_dict is None:
+        raise TypeError(f"Unsupported edge-classifier checkpoint format: {path}")
+
+    model = EdgeMLP(embedding_dim=embedding_dim).to(device)
+    incompatible = model.load_state_dict(state_dict, strict=False)
+    model.eval()
+    return model, {
+        "checkpoint": str(path),
+        "checkpoint_format": "state_dict",
+        "model_class": model.__class__.__name__,
+        "outputs_probabilities": bool(edge_model_outputs_probabilities(model)),
+        "missing_keys": list(incompatible.missing_keys),
+        "unexpected_keys": list(incompatible.unexpected_keys),
+    }
+
+
+def edge_model_outputs_probabilities(model: nn.Module) -> bool:
+    if bool(getattr(model, "outputs_probabilities", False)):
+        return True
+    mlp = getattr(model, "mlp", None)
+    if isinstance(mlp, nn.Sequential) and len(mlp) > 0 and isinstance(mlp[-1], nn.Sigmoid):
+        return True
+    return False
+
+
+def edge_probabilities(model: nn.Module, x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
+    output = model(x1, x2)
+    if edge_model_outputs_probabilities(model):
+        return output.float()
+    return torch.sigmoid(output).float()
 
 
 def unique_undirected_edge_index(
@@ -205,7 +307,7 @@ def score_edge_index(
             batch_pairs = edge_pairs[start : start + batch_size]
             x1 = node_embeddings[batch_pairs[:, 0]].to(device)
             x2 = node_embeddings[batch_pairs[:, 1]].to(device)
-            probs = torch.sigmoid(model(x1, x2)).cpu()
+            probs = edge_probabilities(model, x1, x2).cpu()
             scores.append(probs)
 
     if not scores:
@@ -239,7 +341,7 @@ def infer_candidate_edges(
                 batch_src = torch.full_like(batch_dst, fill_value=src)
                 x1 = node_embeddings[batch_src].to(device)
                 x2 = node_embeddings[batch_dst].to(device)
-                probs = torch.sigmoid(model(x1, x2)).cpu()
+                probs = edge_probabilities(model, x1, x2).cpu()
 
                 if score_matrix is not None:
                     src_idx = int(src)

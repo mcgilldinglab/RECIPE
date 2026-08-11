@@ -52,6 +52,8 @@ If the fixed split files need to be regenerated, run:
 python scripts/build_training_splits.py --output-dir "${DATA_ROOT}/splits"
 ```
 
+The human unknown-protein workflow additionally requires the external file `${DATA_ROOT}/networks/human_ppi_unknown.csv`. This graph is about 51-54 GB and is not stored in GitHub. It may be shared through Google Drive for review, but an archival repository such as Zenodo, Figshare, OSF, or an institutional archive is preferable for publication.
+
 ## Quick Check
 
 ```bash
@@ -150,6 +152,7 @@ Module C requires a trained known-protein bulk checkpoint. Either use the bundle
 Inputs passed explicitly:
 
 - `${MODEL_ROOT}/bulk/mouse_known_seed5.pth` or `${OUTPUT_ROOT}/module_a_mouse_known/model.pth`
+- `${MODEL_ROOT}/ppi/mouse_edge_classifier.pth` unless `--train-edge-classifier` is used.
 - `${DATA_ROOT}/bulk/mouse_reference.csv`
 - `${DATA_ROOT}/bulk/mouse_sequence_known.npy`
 - `${DATA_ROOT}/networks/mouse_ppi_known.csv`
@@ -167,10 +170,14 @@ python scripts/run_module_c.py \
   --ppi-csv "${DATA_ROOT}/networks/mouse_ppi_known.csv" \
   --coexpression-csv "${DATA_ROOT}/networks/mouse_coexpression.csv" \
   --bulk-checkpoint-path "${MODEL_ROOT}/bulk/mouse_known_seed5.pth" \
+  --edge-checkpoint-path "${MODEL_ROOT}/ppi/mouse_edge_classifier.pth" \
+  --skip-candidate-inference \
   --output-dir "${OUTPUT_ROOT}/module_c_mouse_ppi"
 ```
 
-For the human PPI run, use `--species human`, `human_reference.csv`, `human_sequence_known.npy`, `human_ppi_known.csv`, and `${MODEL_ROOT}/bulk/human_known_seed12.pth`.
+For the human PPI run, use `--species human`, `human_reference.csv`, `human_sequence_known.npy`, `human_ppi_known.csv`, `${MODEL_ROOT}/bulk/human_known_seed12.pth`, and `${MODEL_ROOT}/ppi/human_edge_classifier.pth`.
+
+The command above is the quick checkpoint-based review run. It scores known PPI edges and writes the node embeddings, but it does not scan all possible gene pairs. To generate the full candidate-edge output, remove `--skip-candidate-inference`. To reproduce from a precomputed candidate-edge table without rescanning all pairs, pass `--candidate-edge-csv /path/to/candidate_edges.csv`.
 
 Expected files:
 
@@ -182,56 +189,33 @@ Expected files:
 
 ### Module D: Single-Cell Transfer
 
-Inputs passed explicitly:
+Module D uses a single entry script with two assay options:
 
-- `${DATA_ROOT}/bulk/human_reference.csv`
-- `${DATA_ROOT}/bulk/single_cell_transfer_sequence.npy`
-- `${DATA_ROOT}/networks/single_cell_transfer_ppi.csv`
-- `${DATA_ROOT}/pausing/cds_annotations.csv`
-- `${DATA_ROOT}/pausing/human_nc2_pause.csv`
-- `${DATA_ROOT}/pausing/fraction_rich_pause.csv`
-- `${DATA_ROOT}/pausing/pseudobulk_pause_matrix.csv`
-- `${DATA_ROOT}/single_cell/expression_raw.csv`
-- `${DATA_ROOT}/single_cell/expression_normalized.csv`
-- `${DATA_ROOT}/single_cell/metadata.csv`
-- `${DATA_ROOT}/splits/single_cell_self_learning_seed12.csv`
-- `${DATA_ROOT}/splits/single_cell_module_a_seed42.csv`
-- `${DATA_ROOT}/splits/single_cell_graph_seed42.csv`
+- `--assay scriboseq`: use scRibo-seq input to predict single-cell protein abundance.
+- `--assay scrnaseq`: use scRNA-seq input to predict single-cell protein abundance.
 
 ```bash
 python scripts/run_module_d.py \
-  --steps phase0,phase1,phase2 \
-  --seed 12 \
-  --device auto \
+  --assay scriboseq \
+  --data-root "${DATA_ROOT}" \
   --model-root "${MODEL_ROOT}" \
-  --bulk-reference-csv "${DATA_ROOT}/bulk/human_reference.csv" \
-  --transcript-order-csv "${DATA_ROOT}/single_cell/expression_normalized.csv" \
-  --sequence-npy "${DATA_ROOT}/bulk/single_cell_transfer_sequence.npy" \
-  --ppi-csv "${DATA_ROOT}/networks/single_cell_transfer_ppi.csv" \
-  --cds-csv "${DATA_ROOT}/pausing/cds_annotations.csv" \
-  --phase0-pause-csv "${DATA_ROOT}/pausing/human_nc2_pause.csv" \
-  --phase1-pause-csv "${DATA_ROOT}/pausing/fraction_rich_pause.csv" \
-  --expression-csv "${DATA_ROOT}/single_cell/expression_raw.csv" \
-  --expression-normalized-csv "${DATA_ROOT}/single_cell/expression_normalized.csv" \
-  --metadata-csv "${DATA_ROOT}/single_cell/metadata.csv" \
-  --pause-matrix-csv "${DATA_ROOT}/pausing/pseudobulk_pause_matrix.csv" \
-  --phase0-init-checkpoint "${MODEL_ROOT}/single_cell/bulk_self_learning.pth" \
-  --phase0-split-csv "${DATA_ROOT}/splits/single_cell_self_learning_seed12.csv" \
-  --phase1-split-csv "${DATA_ROOT}/splits/single_cell_module_a_seed42.csv" \
-  --phase2-split-csv "${DATA_ROOT}/splits/single_cell_graph_seed42.csv" \
   --output-dir "${OUTPUT_ROOT}/module_d_single_cell"
 ```
 
-Expected files include:
+```bash
+python scripts/run_module_d.py \
+  --assay scrnaseq \
+  --steps phase0,phase12,phase3 \
+  --rnaseq-phase0-args="--bundle-dir ${SCRNASEQ_BUNDLE_DIR} --ppi-path ${SCRNASEQ_PPI_CSV} --output-dir ${OUTPUT_ROOT}/module_d_scrnaseq/phase0 --seed 8 --device auto" \
+  --rnaseq-phase12-args="--bundle-dir ${SCRNASEQ_BUNDLE_DIR} --phase0-summary ${OUTPUT_ROOT}/module_d_scrnaseq/phase0/summary.json --phase0-model ${OUTPUT_ROOT}/module_d_scrnaseq/phase0/best_model.pth --ppi-path ${SCRNASEQ_PPI_CSV} --output-root ${OUTPUT_ROOT}/module_d_scrnaseq/phase12 --seed 0 --device auto" \
+  --rnaseq-phase3-args="--bundle-dir ${SCRNASEQ_BUNDLE_DIR} --hidden-cache-root ${OUTPUT_ROOT}/module_d_scrnaseq/phase2_hidden_cache --truth-csv ${NANOSPINS_TRUTH_CSV} --mapping-xlsx ${NANOSPINS_MAPPING_XLSX} --output-root ${OUTPUT_ROOT}/module_d_scrnaseq/phase3 --seed 0 --device auto"
+```
 
-- `${OUTPUT_ROOT}/module_d_single_cell/single_cell_transfer_summary.json`
-- `${OUTPUT_ROOT}/module_d_single_cell/phase0/phase0_summary.json`
-- `${OUTPUT_ROOT}/module_d_single_cell/phase1/phase1_summary.json`
-- `${OUTPUT_ROOT}/module_d_single_cell/phase2/phase2_summary.json`
+For the scRNA-seq option, set `SCRNASEQ_BUNDLE_DIR`, `SCRNASEQ_PPI_CSV`, `NANOSPINS_TRUTH_CSV`, and `NANOSPINS_MAPPING_XLSX` to the corresponding local data files before running.
 
 ## One-Command Pipeline
 
-To run modules A-D in order:
+To run the mouse bulk/PPI tasks together with the human single-cell transfer task:
 
 ```bash
 python scripts/run_recipe.py \
@@ -242,17 +226,20 @@ python scripts/run_recipe.py \
   --device auto \
   --data-root "${DATA_ROOT}" \
   --model-root "${MODEL_ROOT}" \
+  --single-cell-assay scriboseq \
   --bulk-unknown-split-csv "${DATA_ROOT}/splits/bulk_mouse_unknown_seed12.csv" \
   --bulk-known-split-csv "${DATA_ROOT}/splits/bulk_mouse_known_seed12.csv" \
   --phase0-split-csv "${DATA_ROOT}/splits/single_cell_self_learning_seed12.csv" \
   --phase1-split-csv "${DATA_ROOT}/splits/single_cell_module_a_seed42.csv" \
   --phase2-split-csv "${DATA_ROOT}/splits/single_cell_graph_seed42.csv" \
+  --skip-candidate-inference \
+  --use-bundled-cell-embeddings \
   --output-root "${OUTPUT_ROOT}/all_modules"
 ```
 
-When Module A and Module C are run together with `--bulk-train`, Module C uses `${OUTPUT_ROOT}/all_modules/module_a/model.pth`. Without `--bulk-train`, Module C falls back to the bundled known-protein bulk checkpoint.
+In this combined command, `--species mouse` applies to Modules A-C. `--single-cell-assay scriboseq` makes Module D use the human scRibo-seq transfer inputs listed above. Use `--single-cell-assay scrnaseq` plus the `--rnaseq-phase0-args`, `--rnaseq-phase12-args`, and `--rnaseq-phase3-args` forwarding options for the scRNA-seq branch. When Module A and Module C are run together with `--bulk-train`, Module C uses `${OUTPUT_ROOT}/all_modules/module_a/model.pth`. Without `--bulk-train`, Module C falls back to the bundled known-protein bulk checkpoint.
 
-Add `--bulk-train` to retrain Modules A and B, `--bulk-max-epochs`, `--bulk-patience`, and `--bulk-learning-rate` to change bulk training, `--edge-max-epochs` and `--edge-patience` to change Module C training, and `--train-phase0`, `--train-phase1`, or `--train-phase2` to retrain single-cell phases.
+Add `--bulk-train` to retrain Modules A and B, `--bulk-max-epochs`, `--bulk-patience`, and `--bulk-learning-rate` to change bulk training, and `--train-edge-classifier`, `--edge-max-epochs`, and `--edge-patience` to change Module C training. Module D branch-specific options are controlled through `run_module_d.py`.
 
 ## Fixed Split Files
 

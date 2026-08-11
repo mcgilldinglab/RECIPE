@@ -43,6 +43,8 @@ class SingleCellTransferConfig:
     phase0_target_col: str
     phase0_pause_col: str
     phase0_init_checkpoint: Path | None
+    phase1_checkpoint: Path | None
+    phase2_checkpoint: Path | None
     expression_csv: Path
     expression_normalized_csv: Path
     metadata_csv: Path
@@ -130,6 +132,8 @@ SINGLE_CELL_TRANSFER_CONFIG = SingleCellTransferConfig(
     phase0_target_col="NC3",
     phase0_pause_col="phase0_pause",
     phase0_init_checkpoint=SINGLE_CELL_MODEL_DIR / "bulk_self_learning.pth",
+    phase1_checkpoint=SINGLE_CELL_MODEL_DIR / "pseudobulk_finetuned.pth",
+    phase2_checkpoint=SINGLE_CELL_MODEL_DIR / "cell_graph_seed12.pth",
     expression_csv=SINGLE_CELL_DATA_DIR / "expression_raw.csv",
     expression_normalized_csv=SINGLE_CELL_DATA_DIR / "expression_normalized.csv",
     metadata_csv=SINGLE_CELL_DATA_DIR / "metadata.csv",
@@ -139,7 +143,7 @@ SINGLE_CELL_TRANSFER_CONFIG = SingleCellTransferConfig(
     bundled_cell_outputs_npy=SINGLE_CELL_DATA_DIR / "cell_outputs.npy",
     bundled_prediction_csv=SINGLE_CELL_DATA_DIR / "predicted_cell_matrix.csv",
     bundled_prediction_seed123_csv=SINGLE_CELL_DATA_DIR / "predicted_cell_matrix_seed123.csv",
-    bundled_phase2_checkpoint=None,
+    bundled_phase2_checkpoint=SINGLE_CELL_MODEL_DIR / "cell_graph_seed12.pth",
 )
 
 
@@ -225,6 +229,8 @@ def with_single_cell_input_paths(
     metadata_csv: str | Path | None = None,
     pause_matrix_csv: str | Path | None = None,
     phase0_init_checkpoint: str | Path | None = None,
+    phase1_checkpoint: str | Path | None = None,
+    phase2_checkpoint: str | Path | None = None,
 ) -> SingleCellTransferConfig:
     """Return a single-cell config with user-supplied paths overriding package defaults."""
 
@@ -242,6 +248,9 @@ def with_single_cell_input_paths(
         metadata_csv=_replace_data_root(config.metadata_csv, data_root),
         pause_matrix_csv=_replace_data_root(config.pause_matrix_csv, data_root),
         phase0_init_checkpoint=_replace_model_root(config.phase0_init_checkpoint, model_root),
+        phase1_checkpoint=_replace_model_root(config.phase1_checkpoint, model_root),
+        phase2_checkpoint=_replace_model_root(config.phase2_checkpoint, model_root),
+        bundled_phase2_checkpoint=_replace_model_root(config.bundled_phase2_checkpoint, model_root),
     )
     overrides = {
         "bulk_reference_csv": _resolve_optional_path(bulk_reference_csv),
@@ -256,6 +265,8 @@ def with_single_cell_input_paths(
         "metadata_csv": _resolve_optional_path(metadata_csv),
         "pause_matrix_csv": _resolve_optional_path(pause_matrix_csv),
         "phase0_init_checkpoint": _resolve_optional_path(phase0_init_checkpoint),
+        "phase1_checkpoint": _resolve_optional_path(phase1_checkpoint),
+        "phase2_checkpoint": _resolve_optional_path(phase2_checkpoint),
     }
     overrides = {key: value for key, value in overrides.items() if value is not None}
     return replace(updated, **overrides)

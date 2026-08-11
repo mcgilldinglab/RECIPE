@@ -7,16 +7,18 @@ import numpy as np
 import pandas as pd
 import torch
 
+from .assets import PPI_MODEL_DIR
 from .bulk_regression import predict_bulk_outputs
 from .bulk_workflow import build_bulk_graph_for_task, load_model_state, make_bulk_model
 from .models import RBULK
 from .ppi_inference import (
     infer_candidate_edges,
+    load_edge_classifier_checkpoint,
     load_positive_ppi_edges,
     save_new_edges_csv,
     save_score_matrix,
     score_edge_index,
-    train_edge_classifier,
+    train_edge_classifier as train_edge_classifier_model,
 )
 from .utils import resolve_device, save_json, set_seed
 
@@ -48,6 +50,31 @@ def _coexpression_summary(coexpression_csv: Path, edge_index: torch.Tensor) -> d
     }
 
 
+def _default_edge_checkpoint(species: str, model_root: str | Path | None = None) -> Path:
+    checkpoint = PPI_MODEL_DIR / f"{species.lower()}_edge_classifier.pth"
+    if model_root is None:
+        return checkpoint
+    return Path(model_root).expanduser().resolve() / "ppi" / checkpoint.name
+
+
+def _read_candidate_edges_csv(path: str | Path) -> tuple[torch.Tensor, torch.Tensor]:
+    df = pd.read_csv(path)
+    if {"node1", "node2"}.issubset(df.columns):
+        src_col, dst_col = "node1", "node2"
+    elif {"source", "target"}.issubset(df.columns):
+        src_col, dst_col = "source", "target"
+    else:
+        raise ValueError("Candidate edge CSV must contain node1/node2 or source/target columns.")
+
+    edge_index = torch.tensor(df[[src_col, dst_col]].to_numpy(dtype=np.int64).T, dtype=torch.long)
+    score_col = "probability" if "probability" in df.columns else "score" if "score" in df.columns else None
+    if score_col is None:
+        scores = torch.full((edge_index.size(1),), float("nan"), dtype=torch.float32)
+    else:
+        scores = torch.tensor(pd.to_numeric(df[score_col], errors="coerce").to_numpy(dtype=np.float32))
+    return edge_index, scores
+
+
 def run_ppi_refinement(
     species: str,
     condition_name: str,
@@ -62,6 +89,10 @@ def run_ppi_refinement(
     negative_ratio: float = 1.0,
     threshold: float = 0.8,
     export_score_matrix: bool = False,
+    train_edge_classifier: bool = False,
+    edge_checkpoint_path: str | Path | None = None,
+    candidate_edge_csv: str | Path | None = None,
+    skip_candidate_inference: bool = False,
     log_every: int = 10,
     data_root: str | Path | None = None,
     model_root: str | Path | None = None,
@@ -105,17 +136,33 @@ def run_ppi_refinement(
     _, node_embeddings = predict_bulk_outputs(model, data)
     positive_edges = load_positive_ppi_edges(config.ppi_csv)
 
-    edge_model, edge_summary = train_edge_classifier(
-        node_embeddings=node_embeddings,
-        positive_edge_index=positive_edges,
-        device=device,
-        lr=edge_learning_rate,
-        batch_size=edge_batch_size,
-        max_epochs=edge_max_epochs,
-        patience=edge_patience,
-        negative_ratio=negative_ratio,
-        log_every=log_every,
+    edge_checkpoint = Path(edge_checkpoint_path).expanduser().resolve() if edge_checkpoint_path else _default_edge_checkpoint(
+        species=species,
+        model_root=model_root,
     )
+    if (not train_edge_classifier) and edge_checkpoint.exists():
+        edge_model, edge_summary = load_edge_classifier_checkpoint(
+            checkpoint_path=edge_checkpoint,
+            embedding_dim=int(node_embeddings.size(1)),
+            device=device,
+        )
+        edge_summary["source"] = "checkpoint"
+    else:
+        if (not train_edge_classifier) and not edge_checkpoint.exists():
+            print(f"[Module C] Edge checkpoint not found, training a new classifier: {edge_checkpoint}")
+        edge_model, edge_summary = train_edge_classifier_model(
+            node_embeddings=node_embeddings,
+            positive_edge_index=positive_edges,
+            device=device,
+            lr=edge_learning_rate,
+            batch_size=edge_batch_size,
+            max_epochs=edge_max_epochs,
+            patience=edge_patience,
+            negative_ratio=negative_ratio,
+            log_every=log_every,
+        )
+        edge_summary["source"] = "trained"
+        edge_summary["requested_checkpoint"] = str(edge_checkpoint)
 
     positive_scores = score_edge_index(
         model=edge_model,
@@ -123,13 +170,23 @@ def run_ppi_refinement(
         edge_index=positive_edges,
         device=device,
     )
-    candidate_edges, candidate_scores, score_matrix = infer_candidate_edges(
-        model=edge_model,
-        node_embeddings=node_embeddings,
-        device=device,
-        threshold=threshold,
-        export_score_matrix=export_score_matrix,
-    )
+    score_matrix = None
+    candidate_source = "inferred"
+    if candidate_edge_csv:
+        candidate_edges, candidate_scores = _read_candidate_edges_csv(candidate_edge_csv)
+        candidate_source = "csv"
+    elif skip_candidate_inference:
+        candidate_edges = torch.empty((2, 0), dtype=torch.long)
+        candidate_scores = torch.empty(0, dtype=torch.float32)
+        candidate_source = "skipped"
+    else:
+        candidate_edges, candidate_scores, score_matrix = infer_candidate_edges(
+            model=edge_model,
+            node_embeddings=node_embeddings,
+            device=device,
+            threshold=threshold,
+            export_score_matrix=export_score_matrix,
+        )
     new_edges, new_scores = _filter_new_edges(candidate_edges, candidate_scores, positive_edges)
 
     edge_model_path = output_dir / "edge_classifier.pth"
@@ -164,6 +221,7 @@ def run_ppi_refinement(
         "bulk_checkpoint": str(checkpoint),
         "bulk_checkpoint_load": bulk_checkpoint_load,
         "edge_classifier": edge_summary,
+        "candidate_source": candidate_source,
         "node_count": int(data.num_nodes),
         "known_edge_count": int(positive_edges.size(1)),
         "candidate_edge_count": int(new_edges.size(1)),
@@ -177,6 +235,8 @@ def run_ppi_refinement(
             "sequence_npy": str(config.sequence_npy),
             "ppi_csv": str(config.ppi_csv),
             "bulk_checkpoint": str(checkpoint),
+            "edge_checkpoint": str(edge_checkpoint),
+            "candidate_edge_csv": str(Path(candidate_edge_csv).expanduser().resolve()) if candidate_edge_csv else None,
             "coexpression_csv": str(coexpression_path),
         },
         "outputs": {

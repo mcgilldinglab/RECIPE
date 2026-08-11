@@ -1,6 +1,6 @@
-# Training Notebooks
+# Optional Training References
 
-This directory contains public, sanitized training notebooks derived from the manuscript workflow notebooks. Execution outputs, execution counts, and local absolute paths were removed before adding them to the repository.
+This directory contains sanitized training notebooks derived from the manuscript workflow notebooks. They are kept as references only. The command-line entry points in `../scripts/` are the recommended way to reproduce results.
 
 Before rerunning the notebooks, replace these placeholders with local paths:
 
@@ -9,7 +9,7 @@ Before rerunning the notebooks, replace these placeholders with local paths:
 - `<DNABERT_ROOT>`: local DNABERT checkout, if sequence-embedding utilities are reused.
 - `<LOCAL_DATA_ROOT>`: local root for external datasets not distributed through GitHub.
 
-The command-line entry points in `../scripts/` are recommended for reproducible runs. Fixed train/validation/test CSV files are provided in `../data/splits/`. These notebooks are training references and tutorials.
+Fixed train/validation/test CSV files are provided in `../data/splits/`.
 
 ## Included Notebooks
 

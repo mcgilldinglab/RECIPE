@@ -37,6 +37,22 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-pause", action="store_true", help="Use zero pausing features when no pausing column is available.")
     parser.add_argument("--edge-max-epochs", type=int, default=1000)
     parser.add_argument("--edge-patience", type=int, default=50)
+    parser.add_argument(
+        "--train-edge-classifier",
+        action="store_true",
+        help="Retrain the PPI edge classifier instead of loading the bundled checkpoint when available.",
+    )
+    parser.add_argument("--edge-checkpoint-path", default=None, help="Optional PPI edge-classifier checkpoint.")
+    parser.add_argument(
+        "--candidate-edge-csv",
+        default=None,
+        help="Optional precomputed candidate-edge CSV with node1/node2 or source/target columns.",
+    )
+    parser.add_argument(
+        "--skip-candidate-inference",
+        action="store_true",
+        help="Score known PPI edges and save embeddings without running all-pairs candidate inference.",
+    )
     parser.add_argument("--threshold", type=float, default=0.8)
     parser.add_argument("--export-score-matrix", action="store_true")
     return parser
@@ -53,6 +69,10 @@ def main() -> None:
         bulk_checkpoint_path=args.bulk_checkpoint_path,
         edge_max_epochs=args.edge_max_epochs,
         edge_patience=args.edge_patience,
+        train_edge_classifier=args.train_edge_classifier,
+        edge_checkpoint_path=args.edge_checkpoint_path,
+        candidate_edge_csv=args.candidate_edge_csv,
+        skip_candidate_inference=args.skip_candidate_inference,
         threshold=args.threshold,
         export_score_matrix=args.export_score_matrix,
         data_root=args.data_root,

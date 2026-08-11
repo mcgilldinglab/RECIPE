@@ -21,9 +21,9 @@ python scripts/run_smoke_demo.py --device cpu --output-dir outputs/smoke_demo
 
 Expected run time: under 1 minute. The tested `pyg` CPU run completed in about 4.7 seconds wall time.
 
-## GitHub / Git LFS Strategy
+## Large Files
 
-Commit small CSV and metadata files directly. Track large runtime assets with Git LFS when they are suitable for GitHub:
+These larger runtime assets are tracked with Git LFS in the repository:
 
 - `data/bulk/human_sequence_known.npy`
 - `data/bulk/human_sequence_unknown.npy`
@@ -36,11 +36,11 @@ Commit small CSV and metadata files directly. Track large runtime assets with Gi
 - `data/networks/single_cell_transfer_ppi.csv`
 - `data/single_cell/cell_embeddings.npy`
 
-Do not upload this file to GitHub:
+This file is required only for the human unknown-protein workflow and is not stored in GitHub:
 
 - `data/networks/human_ppi_unknown.csv`
 
-That graph is about 51-54 GB locally and should be distributed through external storage.
+That graph is about 51-54 GB locally. For review, it can be shared through an external link such as Google Drive and placed at the path above. For publication, use a stable archive such as Zenodo, Figshare, OSF, or an institutional repository when possible.
 
 ## Data Preparation
 
@@ -64,13 +64,7 @@ The public reproduction commands pass these input paths explicitly under `DATA_R
 - Module A: known-protein bulk prediction with `bulk/{human,mouse}_reference.csv`, `bulk/{human,mouse}_sequence_known.npy`, and `networks/{human,mouse}_ppi_known.csv`.
 - Module B: unknown-protein bulk inference with `bulk/{human,mouse}_reference.csv`, `bulk/{human,mouse}_sequence_unknown.npy`, and `networks/{human,mouse}_ppi_unknown.csv`. The human unknown PPI graph is external and not distributed through GitHub.
 - Module C: PPI refinement with known-protein bulk inputs, optional generated `networks/{human,mouse}_coexpression.csv`, plus a Module A known-protein checkpoint such as `models/bulk/mouse_known_seed5.pth` or `outputs/reproduce/module_a_mouse_known/model.pth`.
-- Module D: `bulk/human_reference.csv`, `bulk/single_cell_transfer_sequence.npy`, `networks/single_cell_transfer_ppi.csv`, `pausing/cds_annotations.csv`, `pausing/human_nc2_pause.csv`, `pausing/fraction_rich_pause.csv`, `pausing/pseudobulk_pause_matrix.csv`, `single_cell/expression_raw.csv`, `single_cell/expression_normalized.csv`, and `single_cell/metadata.csv`.
+- Module D scRibo-seq branch: `bulk/human_reference.csv`, `bulk/single_cell_transfer_sequence.npy`, `networks/single_cell_transfer_ppi.csv`, `pausing/cds_annotations.csv`, `pausing/human_nc2_pause.csv`, `pausing/fraction_rich_pause.csv`, `pausing/pseudobulk_pause_matrix.csv`, `single_cell/expression_raw.csv`, `single_cell/expression_normalized.csv`, and `single_cell/metadata.csv`.
+- Module D scRNA-seq branch: an external ENSMUSP scRNA/bulk-protein bundle, the matching PPI CSV, a phase2 hidden-cache directory, and nanoSPINS truth/mapping files passed explicitly to `scripts/run_module_d.py --assay scrnaseq`.
 
 Fixed split reference files are under `data/splits/`.
-
-To rebuild aliases from a private source data tree, arrange that tree with the same relative layout as `data/` and then run:
-
-```bash
-export RECIPE_SOURCE_DATA_ROOT=/path/to/source/project
-python scripts/build_data_aliases.py --manifest-json data/alias_manifest.json
-```

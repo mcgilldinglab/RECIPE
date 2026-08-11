@@ -19,6 +19,7 @@ REQUIRED_PUBLIC_INPUTS = (
     "bulk/mouse_sequence_known.npy",
     "bulk/human_reference.csv",
     "bulk/human_sequence_known.npy",
+    "bulk/human_sequence_unknown.npy",
     "bulk/single_cell_transfer_sequence.npy",
     "networks/mouse_ppi_unknown.csv",
     "networks/mouse_ppi_known.csv",
@@ -31,6 +32,8 @@ REQUIRED_PUBLIC_INPUTS = (
     "single_cell/expression_raw.csv",
     "single_cell/expression_normalized.csv",
     "single_cell/metadata.csv",
+    "single_cell/cell_embeddings.npy",
+    "single_cell/cell_outputs.npy",
     "splits/bulk_mouse_unknown_seed12.csv",
     "splits/bulk_mouse_known_seed12.csv",
     "splits/bulk_human_known_seed12.csv",
@@ -44,7 +47,18 @@ REQUIRED_PUBLIC_MODELS = (
     "bulk/mouse_known_seed5.pth",
     "bulk/human_known_seed12.pth",
     "bulk/human_unknown_seed0.pth",
+    "ppi/human_edge_classifier.pth",
+    "ppi/mouse_edge_classifier.pth",
     "single_cell/bulk_self_learning.pth",
+    "single_cell/pseudobulk_finetuned.pth",
+    "single_cell/cell_graph_seed12.pth",
+)
+
+EXTERNAL_PUBLIC_INPUTS = (
+    {
+        "relative_path": "networks/human_ppi_unknown.csv",
+        "reason": "Required for the human unknown-protein workflow; about 51-54 GB and distributed outside GitHub.",
+    },
 )
 
 
@@ -138,6 +152,13 @@ def main() -> None:
     missing_models = [item for item in model_status if not item["ready"]]
     summary["required_inputs"] = required_status
     summary["required_models"] = model_status
+    summary["external_inputs"] = [
+        {
+            **item,
+            **_file_status(data_root, item["relative_path"]),
+        }
+        for item in EXTERNAL_PUBLIC_INPUTS
+    ]
     summary["missing_required_inputs"] = missing
     summary["missing_required_models"] = missing_models
     summary["ready"] = not missing and not missing_models

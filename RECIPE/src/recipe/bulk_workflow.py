@@ -31,6 +31,29 @@ class BulkSplitBundle:
     pool_idx: torch.Tensor
 
 
+def _check_bulk_input_files(config: BulkTaskConfig) -> None:
+    required_paths = {
+        "reference_csv": config.reference_csv,
+        "sequence_npy": config.sequence_npy,
+        "ppi_csv": config.ppi_csv,
+    }
+    if config.pause_csv is not None:
+        required_paths["pause_csv"] = config.pause_csv
+
+    missing = [(name, path) for name, path in required_paths.items() if not Path(path).exists()]
+    if not missing:
+        return
+
+    details = "; ".join(f"{name}={path}" for name, path in missing)
+    extra = ""
+    if config.species.lower() == "human" and config.task.lower() == "unknown":
+        extra = (
+            " The human unknown workflow requires the external PPI graph "
+            "`data/networks/human_ppi_unknown.csv` (about 51-54 GB), which is not stored in GitHub."
+        )
+    raise FileNotFoundError(f"Missing RECIPE input file(s): {details}.{extra}")
+
+
 def build_bulk_graph_for_task(
     species: str,
     task: str,
@@ -56,6 +79,7 @@ def build_bulk_graph_for_task(
         ppi_csv=ppi_csv,
         pause_csv=pause_csv,
     )
+    _check_bulk_input_files(config)
     condition = config.conditions[condition_name.upper()]
     condition = BulkConditionSpec(
         name=condition.name,

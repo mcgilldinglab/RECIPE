@@ -10,14 +10,14 @@ RECIPE is a deep graph learning framework for estimating protein abundance from 
 
 ## Package Directory
 
-Code, command-line runners, data layout, training notebooks, and detailed documentation are under [`RECIPE/`](./RECIPE).
+Code, command-line runners, data layout, benchmark wrappers, and detailed documentation are under [`RECIPE/`](./RECIPE).
 
 ## Modules
 
 - Module A: bulk protein abundance prediction for proteins with measured labels.
 - Module B: bulk inference for proteomics-undetected or unknown proteins.
 - Module C: self-supervised PPI refinement.
-- Module D: single-cell transfer with pseudo-bulk alignment and a cell-graph head.
+- Module D: single-cell protein prediction from either scRibo-seq or scRNA-seq input.
 
 ## Install
 
@@ -49,7 +49,7 @@ python -m pip install "torch>=2.1" "torch-geometric>=2.5"
 python -m pip install "git+https://github.com/mcgilldinglab/RECIPE.git@main#subdirectory=RECIPE"
 ```
 
-If the package is installed directly from GitHub, keep data and checkpoints outside the Python environment and pass `--data-root /path/to/RECIPE/RECIPE/data` plus `--model-root /path/to/RECIPE/RECIPE/models`, or use the file-level input arguments shown in the reproduction guide.
+If the package is installed directly from GitHub, keep data and checkpoints outside the Python environment and pass `--data-root /path/to/RECIPE/RECIPE/data` plus `--model-root /path/to/RECIPE/RECIPE/models`, or use the file-level input arguments shown in the reproduction guide. For full manuscript-scale reproduction, especially Module D scRNA-seq phase scripts, clone the repository and run from the checkout.
 
 ## Quick Start
 
@@ -72,7 +72,7 @@ The smoke demo should finish in under 1 minute.
 - Full package documentation: [`RECIPE/README.md`](./RECIPE/README.md)
 - Reproduction commands and explicit input data paths: [`RECIPE/docs/reproduction.md`](./RECIPE/docs/reproduction.md)
 - Data layout: [`RECIPE/docs/data.md`](./RECIPE/docs/data.md)
-- Sanitized training notebooks: [`RECIPE/notebooks/training`](./RECIPE/notebooks/training)
+- Benchmark wrappers: [`RECIPE/docs/benchmarks.md`](./RECIPE/docs/benchmarks.md)
 
 ## Contact
 

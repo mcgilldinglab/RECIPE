@@ -885,6 +885,9 @@ def run_single_cell_phase1(
     history: list[dict[str, float]] = []
     checkpoint_load_report: dict[str, Any] | None = None
 
+    if (not train) and checkpoint_path and not checkpoint.exists():
+        raise FileNotFoundError(f"Phase1 checkpoint not found: {checkpoint}")
+
     if train or not checkpoint.exists():
         print("[Phase1] training pseudobulk fine-tuning")
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -1087,6 +1090,7 @@ def run_single_cell_phase2(
     rich_fraction_label: str = "Rich",
     config: SingleCellTransferConfig | None = None,
     split_csv: str | Path | None = None,
+    use_bundled_cell_embeddings: bool = False,
 ) -> dict[str, Any]:
     config = config or SINGLE_CELL_TRANSFER_CONFIG
     set_seed(seed)
@@ -1115,26 +1119,43 @@ def run_single_cell_phase2(
         train_ids, temp_ids = train_test_split(valid_gene_ids, test_size=0.25, random_state=42)
         test_ids, val_ids = train_test_split(temp_ids, test_size=0.5, random_state=42)
 
-    phase1_bulk_model = RBULK(sequence_dim=int(np.load(config.sequence_npy).shape[1])).to(device)
-    print(f"[Phase2] loading phase1 checkpoint: {phase1_checkpoint_path}")
-    phase1_bulk_model = _load_model_state(phase1_bulk_model, Path(phase1_checkpoint_path), device=device)
-    phase1_checkpoint_load = getattr(phase1_bulk_model, "_recipe_load_report", None)
-    pause_matrix_df = load_pause_matrix(str(config.pause_matrix_csv)).reindex(expression_df.index).fillna(0.0)
-    ppi_edge_index, ppi_edge_attr = load_ppi_graph(config.ppi_csv, add_loops=True)
-    all_z_array, all_y_array, cell_names = export_bulk_embeddings_for_cells(
-        model=phase1_bulk_model,
-        expression=expression_df,
-        meta=metadata_df,
-        sequence_embeddings=np.load(config.sequence_npy),
-        edge_index=ppi_edge_index,
-        edge_attr=ppi_edge_attr,
-        device=device,
-        pause_matrix=pause_matrix_df,
-    )
-    np.save(output_dir / "phase2_cell_embeddings.npy", all_z_array)
-    np.save(output_dir / "phase2_cell_outputs.npy", all_y_array)
-    (output_dir / "phase2_cell_names.txt").write_text("\n".join(cell_names), encoding="utf-8")
-    print(f"[Phase2] exported cell embeddings for {len(cell_names)} cells")
+    phase1_checkpoint_load = None
+    cell_embedding_output = output_dir / "phase2_cell_embeddings.npy"
+    cell_output_output = output_dir / "phase2_cell_outputs.npy"
+    cell_names_output = output_dir / "phase2_cell_names.txt"
+    if use_bundled_cell_embeddings:
+        if not config.bundled_cell_embeddings_npy.exists():
+            raise FileNotFoundError(f"Bundled cell embeddings not found: {config.bundled_cell_embeddings_npy}")
+        if not config.bundled_cell_outputs_npy.exists():
+            raise FileNotFoundError(f"Bundled cell outputs not found: {config.bundled_cell_outputs_npy}")
+        all_z_array = np.load(config.bundled_cell_embeddings_npy, mmap_mode="r")
+        all_y_array = np.load(config.bundled_cell_outputs_npy, mmap_mode="r")
+        cell_names = list(exp_values.index.astype(str))
+        cell_embedding_output = config.bundled_cell_embeddings_npy
+        cell_output_output = config.bundled_cell_outputs_npy
+        cell_names_output.write_text("\n".join(cell_names), encoding="utf-8")
+        print(f"[Phase2] loaded bundled cell embeddings for {len(cell_names)} cells")
+    else:
+        phase1_bulk_model = RBULK(sequence_dim=int(np.load(config.sequence_npy).shape[1])).to(device)
+        print(f"[Phase2] loading phase1 checkpoint: {phase1_checkpoint_path}")
+        phase1_bulk_model = _load_model_state(phase1_bulk_model, Path(phase1_checkpoint_path), device=device)
+        phase1_checkpoint_load = getattr(phase1_bulk_model, "_recipe_load_report", None)
+        pause_matrix_df = load_pause_matrix(str(config.pause_matrix_csv)).reindex(expression_df.index).fillna(0.0)
+        ppi_edge_index, ppi_edge_attr = load_ppi_graph(config.ppi_csv, add_loops=True)
+        all_z_array, all_y_array, cell_names = export_bulk_embeddings_for_cells(
+            model=phase1_bulk_model,
+            expression=expression_df,
+            meta=metadata_df,
+            sequence_embeddings=np.load(config.sequence_npy),
+            edge_index=ppi_edge_index,
+            edge_attr=ppi_edge_attr,
+            device=device,
+            pause_matrix=pause_matrix_df,
+        )
+        np.save(cell_embedding_output, all_z_array)
+        np.save(cell_output_output, all_y_array)
+        cell_names_output.write_text("\n".join(cell_names), encoding="utf-8")
+        print(f"[Phase2] exported cell embeddings for {len(cell_names)} cells")
 
     edge_index, edge_stats = build_cell_graph_edge_index(
         exp_values,
@@ -1165,6 +1186,9 @@ def run_single_cell_phase2(
     }
 
     best_epoch = -1
+    if (not train) and checkpoint_path and not checkpoint.exists():
+        raise FileNotFoundError(f"Phase2 checkpoint not found: {checkpoint}")
+
     if train or not checkpoint.exists():
         print("[Phase2] training shared global cell graph")
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
@@ -1276,13 +1300,16 @@ def run_single_cell_phase2(
             "ppi_csv": str(config.ppi_csv),
             "pause_matrix_csv": str(config.pause_matrix_csv),
             "phase1_checkpoint": str(phase1_checkpoint_path),
+            "bundled_cell_embeddings_npy": str(config.bundled_cell_embeddings_npy),
+            "bundled_cell_outputs_npy": str(config.bundled_cell_outputs_npy),
+            "use_bundled_cell_embeddings": bool(use_bundled_cell_embeddings),
             "split_csv": str(Path(split_csv).expanduser().resolve()) if split_csv else None,
         },
         "outputs": {
             "model": str(checkpoint),
-            "cell_embeddings": str(output_dir / "phase2_cell_embeddings.npy"),
-            "cell_outputs": str(output_dir / "phase2_cell_outputs.npy"),
-            "cell_names": str(output_dir / "phase2_cell_names.txt"),
+            "cell_embeddings": str(cell_embedding_output),
+            "cell_outputs": str(cell_output_output),
+            "cell_names": str(cell_names_output),
             "cell_predictions": str(prediction_csv),
             "predicted_cell_matrix": str(prediction_csv),
             "cell_metadata": str(metadata_csv),
@@ -1316,9 +1343,12 @@ def run_single_cell_transfer(
     metadata_csv: str | Path | None = None,
     pause_matrix_csv: str | Path | None = None,
     phase0_init_checkpoint: str | Path | None = None,
+    phase1_checkpoint: str | Path | None = None,
+    phase2_checkpoint: str | Path | None = None,
     phase0_split_csv: str | Path | None = None,
     phase1_split_csv: str | Path | None = None,
     phase2_split_csv: str | Path | None = None,
+    use_bundled_cell_embeddings: bool = False,
 ) -> dict[str, Any]:
     config = with_single_cell_input_paths(
         SINGLE_CELL_TRANSFER_CONFIG,
@@ -1336,6 +1366,8 @@ def run_single_cell_transfer(
         metadata_csv=metadata_csv,
         pause_matrix_csv=pause_matrix_csv,
         phase0_init_checkpoint=phase0_init_checkpoint,
+        phase1_checkpoint=phase1_checkpoint,
+        phase2_checkpoint=phase2_checkpoint,
     )
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -1363,14 +1395,16 @@ def run_single_cell_transfer(
         phase0_checkpoint_path = (
             phase0_summary["outputs"]["model"]
             if phase0_summary is not None
-            else str(phase0_dir / "phase0_bulk_self_learning_model.pth")
+            else str(config.phase0_init_checkpoint or phase0_dir / "phase0_bulk_self_learning_model.pth")
         )
+        phase1_model_checkpoint = None if train_phase1 else config.phase1_checkpoint
         phase1_summary = run_single_cell_phase1(
             output_dir=phase1_dir,
             phase0_checkpoint_path=phase0_checkpoint_path,
             seed=seed,
             device_name=device_name,
             train=train_phase1,
+            checkpoint_path=phase1_model_checkpoint,
             config=config,
             split_csv=phase1_split_csv,
         )
@@ -1378,16 +1412,19 @@ def run_single_cell_transfer(
         phase1_checkpoint_path = (
             phase1_summary["outputs"]["model"]
             if phase1_summary is not None
-            else str(phase1_dir / "phase1_pseudobulk_model.pth")
+            else str(config.phase1_checkpoint or phase1_dir / "phase1_pseudobulk_model.pth")
         )
+        phase2_model_checkpoint = None if train_phase2 else (config.phase2_checkpoint or config.bundled_phase2_checkpoint)
         phase2_summary = run_single_cell_phase2(
             output_dir=phase2_dir,
             phase1_checkpoint_path=phase1_checkpoint_path,
             seed=seed,
             device_name=device_name,
             train=train_phase2,
+            checkpoint_path=phase2_model_checkpoint,
             config=config,
             split_csv=phase2_split_csv,
+            use_bundled_cell_embeddings=use_bundled_cell_embeddings,
         )
 
     summary = {
@@ -1405,6 +1442,9 @@ def run_single_cell_transfer(
             "metadata_csv": str(config.metadata_csv),
             "pause_matrix_csv": str(config.pause_matrix_csv),
             "phase0_init_checkpoint": str(config.phase0_init_checkpoint) if config.phase0_init_checkpoint else None,
+            "phase1_checkpoint": str(config.phase1_checkpoint) if config.phase1_checkpoint else None,
+            "phase2_checkpoint": str(config.phase2_checkpoint) if config.phase2_checkpoint else None,
+            "use_bundled_cell_embeddings": bool(use_bundled_cell_embeddings),
             "phase0_split_csv": str(Path(phase0_split_csv).expanduser().resolve()) if phase0_split_csv else None,
             "phase1_split_csv": str(Path(phase1_split_csv).expanduser().resolve()) if phase1_split_csv else None,
             "phase2_split_csv": str(Path(phase2_split_csv).expanduser().resolve()) if phase2_split_csv else None,
