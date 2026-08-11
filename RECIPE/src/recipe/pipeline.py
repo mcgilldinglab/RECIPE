@@ -45,29 +45,9 @@ def run_recipe_pipeline(
     if "A" in normalized_modules:
         summary["A"] = run_bulk_module(
             species=species,
-            task="unknown",
-            condition_name=condition,
-            output_dir=output_root / "module_a",
-            seed=seed,
-            device_name=device_name,
-            data_root=data_root,
-            model_root=model_root,
-            split_csv=bulk_unknown_split_csv,
-            expression_col=bulk_expression_col,
-            target_col=bulk_target_col,
-            pause_col=bulk_pause_col,
-            use_pause=use_bulk_pause,
-            train=bulk_train,
-            max_epochs=bulk_max_epochs,
-            patience=bulk_patience,
-            learning_rate=bulk_learning_rate,
-        )
-    if "B" in normalized_modules:
-        summary["B"] = run_bulk_module(
-            species=species,
             task="known",
             condition_name=condition,
-            output_dir=output_root / "module_b",
+            output_dir=output_root / "module_a",
             seed=seed,
             device_name=device_name,
             data_root=data_root,
@@ -82,9 +62,29 @@ def run_recipe_pipeline(
             patience=bulk_patience,
             learning_rate=bulk_learning_rate,
         )
+    if "B" in normalized_modules:
+        summary["B"] = run_bulk_module(
+            species=species,
+            task="unknown",
+            condition_name=condition,
+            output_dir=output_root / "module_b",
+            seed=seed,
+            device_name=device_name,
+            data_root=data_root,
+            model_root=model_root,
+            split_csv=bulk_unknown_split_csv,
+            expression_col=bulk_expression_col,
+            target_col=bulk_target_col,
+            pause_col=bulk_pause_col,
+            use_pause=use_bulk_pause,
+            train=bulk_train,
+            max_epochs=bulk_max_epochs,
+            patience=bulk_patience,
+            learning_rate=bulk_learning_rate,
+        )
     if "C" in normalized_modules:
-        module_b_checkpoint = output_root / "module_b" / "model.pth"
-        bulk_checkpoint_path = module_b_checkpoint if module_b_checkpoint.exists() else None
+        module_a_checkpoint = output_root / "module_a" / "model.pth"
+        bulk_checkpoint_path = module_a_checkpoint if module_a_checkpoint.exists() else None
         summary["C"] = run_ppi_refinement(
             species=species,
             condition_name=condition,

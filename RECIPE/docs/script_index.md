@@ -6,8 +6,8 @@ Demo:
 
 Packaged module entry points:
 
-- `scripts/run_module_a.py`: module A, bulk unknown protein inference.
-- `scripts/run_module_b.py`: module B, known bulk protein prediction.
+- `scripts/run_module_a.py`: module A, known bulk protein prediction.
+- `scripts/run_module_b.py`: module B, bulk unknown protein inference.
 - `scripts/run_module_c.py`: module C, self-supervised PPI refinement.
 - `scripts/run_module_d.py`: module D, single-cell transfer.
 - `scripts/run_recipe.py`: combined multi-module runner.

@@ -68,38 +68,16 @@ Expected run time: under 1 minute. Expected files:
 
 Run commands from the `RECIPE/` package directory.
 
-### Module A: Bulk Unknown Protein Prediction
+The bulk and PPI tasks are separated by species:
 
-Inputs passed explicitly:
+| Module | Task | Human status | Mouse status |
+| --- | --- | --- | --- |
+| A | Known bulk protein prediction | Reproducible from GitHub LFS files | Reproducible from GitHub LFS files |
+| B | Unknown bulk protein inference | Requires external `data/networks/human_ppi_unknown.csv` | Reproducible from GitHub LFS files |
+| C | PPI refinement from known bulk embeddings | Reproducible from GitHub LFS files | Reproducible from GitHub LFS files |
+| D | Single-cell transfer | Human HEK293T single-cell workflow | Not used |
 
-- `${DATA_ROOT}/bulk/mouse_reference.csv`
-- `${DATA_ROOT}/bulk/mouse_sequence_unknown.npy`
-- `${DATA_ROOT}/networks/mouse_ppi_unknown.csv`
-- `${DATA_ROOT}/splits/bulk_mouse_unknown_seed12.csv`
-- `${MODEL_ROOT}/bulk/mouse_unknown_seed1.pth` unless `--train` is used.
-
-```bash
-python scripts/run_module_a.py \
-  --species mouse \
-  --condition KD \
-  --seed 12 \
-  --device auto \
-  --model-root "${MODEL_ROOT}" \
-  --reference-csv "${DATA_ROOT}/bulk/mouse_reference.csv" \
-  --sequence-npy "${DATA_ROOT}/bulk/mouse_sequence_unknown.npy" \
-  --ppi-csv "${DATA_ROOT}/networks/mouse_ppi_unknown.csv" \
-  --split-csv "${DATA_ROOT}/splits/bulk_mouse_unknown_seed12.csv" \
-  --output-dir "${OUTPUT_ROOT}/module_a_mouse_unknown"
-```
-
-Expected files:
-
-- `${OUTPUT_ROOT}/module_a_mouse_unknown/predictions.csv`
-- `${OUTPUT_ROOT}/module_a_mouse_unknown/embeddings.npy`
-- `${OUTPUT_ROOT}/module_a_mouse_unknown/metrics.json`
-- `${OUTPUT_ROOT}/module_a_mouse_unknown/model.pth` when `--train` is used or no bundled checkpoint is available.
-
-### Module B: Bulk Known Protein Prediction
+### Module A: Bulk Known Protein Prediction
 
 Inputs passed explicitly:
 
@@ -110,7 +88,7 @@ Inputs passed explicitly:
 - `${MODEL_ROOT}/bulk/mouse_known_seed5.pth` unless `--train` is used.
 
 ```bash
-python scripts/run_module_b.py \
+python scripts/run_module_a.py \
   --species mouse \
   --condition KD \
   --seed 12 \
@@ -120,23 +98,58 @@ python scripts/run_module_b.py \
   --sequence-npy "${DATA_ROOT}/bulk/mouse_sequence_known.npy" \
   --ppi-csv "${DATA_ROOT}/networks/mouse_ppi_known.csv" \
   --split-csv "${DATA_ROOT}/splits/bulk_mouse_known_seed12.csv" \
-  --output-dir "${OUTPUT_ROOT}/module_b_mouse_known"
+  --output-dir "${OUTPUT_ROOT}/module_a_mouse_known"
 ```
 
 Expected files:
 
-- `${OUTPUT_ROOT}/module_b_mouse_known/predictions.csv`
-- `${OUTPUT_ROOT}/module_b_mouse_known/embeddings.npy`
-- `${OUTPUT_ROOT}/module_b_mouse_known/metrics.json`
-- `${OUTPUT_ROOT}/module_b_mouse_known/model.pth` when `--train` is used or no bundled checkpoint is available.
+- `${OUTPUT_ROOT}/module_a_mouse_known/predictions.csv`
+- `${OUTPUT_ROOT}/module_a_mouse_known/embeddings.npy`
+- `${OUTPUT_ROOT}/module_a_mouse_known/metrics.json`
+- `${OUTPUT_ROOT}/module_a_mouse_known/model.pth` when `--train` is used or no bundled checkpoint is available.
 
-### Module C: PPI Refinement
+For the human known-protein run, use the same command with `--species human`, `human_reference.csv`, `human_sequence_known.npy`, `human_ppi_known.csv`, `bulk_human_known_seed12.csv`, and output directory `${OUTPUT_ROOT}/module_a_human_known`.
 
-Module C requires a trained bulk checkpoint. Either use the bundled known-protein checkpoint or run Module B with `--train` first and pass its checkpoint:
+### Module B: Bulk Unknown Protein Inference
 
 Inputs passed explicitly:
 
-- `${MODEL_ROOT}/bulk/mouse_known_seed5.pth` or `${OUTPUT_ROOT}/module_b_mouse_known/model.pth`
+- `${DATA_ROOT}/bulk/mouse_reference.csv`
+- `${DATA_ROOT}/bulk/mouse_sequence_unknown.npy`
+- `${DATA_ROOT}/networks/mouse_ppi_unknown.csv`
+- `${DATA_ROOT}/splits/bulk_mouse_unknown_seed12.csv`
+- `${MODEL_ROOT}/bulk/mouse_unknown_seed1.pth` unless `--train` is used.
+
+```bash
+python scripts/run_module_b.py \
+  --species mouse \
+  --condition KD \
+  --seed 12 \
+  --device auto \
+  --model-root "${MODEL_ROOT}" \
+  --reference-csv "${DATA_ROOT}/bulk/mouse_reference.csv" \
+  --sequence-npy "${DATA_ROOT}/bulk/mouse_sequence_unknown.npy" \
+  --ppi-csv "${DATA_ROOT}/networks/mouse_ppi_unknown.csv" \
+  --split-csv "${DATA_ROOT}/splits/bulk_mouse_unknown_seed12.csv" \
+  --output-dir "${OUTPUT_ROOT}/module_b_mouse_unknown"
+```
+
+Expected files:
+
+- `${OUTPUT_ROOT}/module_b_mouse_unknown/predictions.csv`
+- `${OUTPUT_ROOT}/module_b_mouse_unknown/embeddings.npy`
+- `${OUTPUT_ROOT}/module_b_mouse_unknown/metrics.json`
+- `${OUTPUT_ROOT}/module_b_mouse_unknown/model.pth` when `--train` is used or no bundled checkpoint is available.
+
+The human unknown-protein run uses `human_reference.csv`, `human_sequence_unknown.npy`, `bulk/human_unknown_seed0.pth`, and an external `data/networks/human_ppi_unknown.csv` file. That PPI graph is about 51-54 GB and is not distributed through GitHub.
+
+### Module C: PPI Refinement
+
+Module C requires a trained known-protein bulk checkpoint. Either use the bundled known-protein checkpoint or run Module A with `--train` first and pass its checkpoint:
+
+Inputs passed explicitly:
+
+- `${MODEL_ROOT}/bulk/mouse_known_seed5.pth` or `${OUTPUT_ROOT}/module_a_mouse_known/model.pth`
 - `${DATA_ROOT}/bulk/mouse_reference.csv`
 - `${DATA_ROOT}/bulk/mouse_sequence_known.npy`
 - `${DATA_ROOT}/networks/mouse_ppi_known.csv`
@@ -156,6 +169,8 @@ python scripts/run_module_c.py \
   --bulk-checkpoint-path "${MODEL_ROOT}/bulk/mouse_known_seed5.pth" \
   --output-dir "${OUTPUT_ROOT}/module_c_mouse_ppi"
 ```
+
+For the human PPI run, use `--species human`, `human_reference.csv`, `human_sequence_known.npy`, `human_ppi_known.csv`, and `${MODEL_ROOT}/bulk/human_known_seed12.pth`.
 
 Expected files:
 
@@ -235,7 +250,8 @@ python scripts/run_recipe.py \
   --output-root "${OUTPUT_ROOT}/all_modules"
 ```
 
-When Module B and Module C are run together with `--bulk-train`, Module C uses `${OUTPUT_ROOT}/all_modules/module_b/model.pth`. Without `--bulk-train`, Module C falls back to the bundled known-protein bulk checkpoint.
+When Module A and Module C are run together with `--bulk-train`, Module C uses `${OUTPUT_ROOT}/all_modules/module_a/model.pth`. Without `--bulk-train`, Module C falls back to the bundled known-protein bulk checkpoint.
+
 Add `--bulk-train` to retrain Modules A and B, `--bulk-max-epochs`, `--bulk-patience`, and `--bulk-learning-rate` to change bulk training, `--edge-max-epochs` and `--edge-patience` to change Module C training, and `--train-phase0`, `--train-phase1`, or `--train-phase2` to retrain single-cell phases.
 
 ## Fixed Split Files

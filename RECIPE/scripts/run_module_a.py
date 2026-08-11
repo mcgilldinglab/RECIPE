@@ -12,7 +12,7 @@ from recipe.utils import json_sanitize
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run RECIPE module A: bulk unknown protein inference.")
+    parser = argparse.ArgumentParser(description="Run RECIPE module A: known bulk protein prediction.")
     parser.add_argument("--species", choices=("human", "mouse"), default="mouse")
     parser.add_argument("--condition", default="KD", help="Condition name, for example NC or KD.")
     parser.add_argument("--output-dir", required=True)
@@ -47,7 +47,7 @@ def main() -> None:
     args = build_parser().parse_args()
     summary = run_bulk_module(
         species=args.species,
-        task="unknown",
+        task="known",
         condition_name=args.condition,
         output_dir=args.output_dir,
         seed=args.seed,

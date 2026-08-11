@@ -4,8 +4,8 @@ RECIPE provides the manuscript workflow as a Python project with reusable code, 
 
 The pipeline has four modules:
 
-- Module A: bulk inference for proteomics-undetected or unknown proteins.
-- Module B: bulk protein abundance prediction for proteins with measured labels.
+- Module A: bulk protein abundance prediction for proteins with measured labels.
+- Module B: bulk inference for proteomics-undetected or unknown proteins.
 - Module C: self-supervised PPI refinement.
 - Module D: single-cell transfer with pseudo-bulk alignment and a cell-graph head.
 
@@ -206,7 +206,7 @@ python scripts/run_recipe.py \
   --output-root "${OUTPUT_ROOT}/all_modules"
 ```
 
-The command above uses bundled checkpoints unless the matching training flags are passed. Add `--bulk-train`, `--train-phase0`, `--train-phase1`, or `--train-phase2` to retrain those parts. When Module B is retrained before Module C, Module C uses `${OUTPUT_ROOT}/all_modules/module_b/model.pth`; otherwise it falls back to the bundled known-protein bulk checkpoint. Per-module commands, explicit input paths, and expected output files are in `docs/reproduction.md`.
+The command above uses bundled checkpoints unless the matching training flags are passed. Add `--bulk-train`, `--train-phase0`, `--train-phase1`, or `--train-phase2` to retrain those parts. When Module A is retrained before Module C, Module C uses `${OUTPUT_ROOT}/all_modules/module_a/model.pth`; otherwise it falls back to the bundled known-protein bulk checkpoint. Per-module commands, explicit input paths, and expected output files are in `docs/reproduction.md`.
 
 ## Outputs
 
@@ -237,7 +237,7 @@ For bulk workflows, prepare:
 
 Column names are not fixed by the package. The bundled configs use names such as `rNC2`, `rKD2`, `NC3`, and `KD3` only because those are the column names in the example datasets. For new data, pass your own input, target, and optional pausing columns on the command line, or define a `BulkConditionSpec` and call `build_bulk_graph_from_dataframe` from Python.
 
-For command-line use, pass these files directly with `--reference-csv`, `--sequence-npy`, `--ppi-csv`, and optionally `--split-csv`. Use `--input-col` for the RNA-seq, Ribo-seq, or other transcript-level input column, `--target-col` for the protein abundance column, and `--pause-col` for a pausing-count column when available. If no pausing feature is available, pass `--no-pause`. For a data directory that mirrors the repository `data/` layout, pass `--data-root /path/to/data`.
+For command-line use, pass these files directly with `--reference-csv`, `--sequence-npy`, `--ppi-csv`, and optionally `--split-csv`. Use `--input-col` for the RNA-seq, Ribo-seq, or other transcript-level input column, `--target-col` for the protein abundance column, and `--pause-col` for a pausing-count column when available. If no pausing feature is available, pass `--no-pause`. For a data directory that mirrors the repository `data/` layout, pass `--data-root /path/to/data`. Use `run_module_a.py` for known-protein prediction and `run_module_b.py` for unknown-protein inference.
 
 ```bash
 python scripts/run_module_a.py \

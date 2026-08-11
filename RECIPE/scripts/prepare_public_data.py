@@ -18,9 +18,11 @@ REQUIRED_PUBLIC_INPUTS = (
     "bulk/mouse_sequence_unknown.npy",
     "bulk/mouse_sequence_known.npy",
     "bulk/human_reference.csv",
+    "bulk/human_sequence_known.npy",
     "bulk/single_cell_transfer_sequence.npy",
     "networks/mouse_ppi_unknown.csv",
     "networks/mouse_ppi_known.csv",
+    "networks/human_ppi_known.csv",
     "networks/single_cell_transfer_ppi.csv",
     "pausing/cds_annotations.csv",
     "pausing/human_nc2_pause.csv",
@@ -31,6 +33,7 @@ REQUIRED_PUBLIC_INPUTS = (
     "single_cell/metadata.csv",
     "splits/bulk_mouse_unknown_seed12.csv",
     "splits/bulk_mouse_known_seed12.csv",
+    "splits/bulk_human_known_seed12.csv",
     "splits/single_cell_self_learning_seed12.csv",
     "splits/single_cell_module_a_seed42.csv",
     "splits/single_cell_graph_seed42.csv",
@@ -39,6 +42,8 @@ REQUIRED_PUBLIC_INPUTS = (
 REQUIRED_PUBLIC_MODELS = (
     "bulk/mouse_unknown_seed1.pth",
     "bulk/mouse_known_seed5.pth",
+    "bulk/human_known_seed12.pth",
+    "bulk/human_unknown_seed0.pth",
     "single_cell/bulk_self_learning.pth",
 )
 

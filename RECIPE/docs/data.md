@@ -48,22 +48,22 @@ After cloning, download Git LFS files and check the reproduction inputs:
 
 ```bash
 git lfs pull
-python scripts/prepare_public_data.py --data-root data --manifest-json outputs/reproduce/data_preparation.json
+python scripts/prepare_public_data.py --data-root data --model-root models --manifest-json outputs/reproduce/data_preparation.json
 ```
 
 To build the mouse coexpression matrix used in Module C summaries:
 
 ```bash
-python scripts/prepare_public_data.py --data-root data --build-mouse-coexpression
+python scripts/prepare_public_data.py --data-root data --model-root models --build-mouse-coexpression
 ```
 
 ## Explicit Reproduction Inputs
 
 The public reproduction commands pass these input paths explicitly under `DATA_ROOT`:
 
-- Module A: `bulk/mouse_reference.csv`, `bulk/mouse_sequence_unknown.npy`, `networks/mouse_ppi_unknown.csv`.
-- Module B: `bulk/mouse_reference.csv`, `bulk/mouse_sequence_known.npy`, `networks/mouse_ppi_known.csv`.
-- Module C: `bulk/mouse_reference.csv`, `bulk/mouse_sequence_known.npy`, `networks/mouse_ppi_known.csv`, optional generated `networks/mouse_coexpression.csv`, plus a Module B checkpoint such as `outputs/reproduce/module_b_mouse_known/model.pth`.
+- Module A: known-protein bulk prediction with `bulk/{human,mouse}_reference.csv`, `bulk/{human,mouse}_sequence_known.npy`, and `networks/{human,mouse}_ppi_known.csv`.
+- Module B: unknown-protein bulk inference with `bulk/{human,mouse}_reference.csv`, `bulk/{human,mouse}_sequence_unknown.npy`, and `networks/{human,mouse}_ppi_unknown.csv`. The human unknown PPI graph is external and not distributed through GitHub.
+- Module C: PPI refinement with known-protein bulk inputs, optional generated `networks/{human,mouse}_coexpression.csv`, plus a Module A known-protein checkpoint such as `models/bulk/mouse_known_seed5.pth` or `outputs/reproduce/module_a_mouse_known/model.pth`.
 - Module D: `bulk/human_reference.csv`, `bulk/single_cell_transfer_sequence.npy`, `networks/single_cell_transfer_ppi.csv`, `pausing/cds_annotations.csv`, `pausing/human_nc2_pause.csv`, `pausing/fraction_rich_pause.csv`, `pausing/pseudobulk_pause_matrix.csv`, `single_cell/expression_raw.csv`, `single_cell/expression_normalized.csv`, and `single_cell/metadata.csv`.
 
 Fixed split reference files are under `data/splits/`.

@@ -14,8 +14,8 @@ Code, command-line runners, data layout, training notebooks, and detailed docume
 
 ## Modules
 
-- Module A: bulk inference for proteomics-undetected or unknown proteins.
-- Module B: bulk protein abundance prediction for proteins with measured labels.
+- Module A: bulk protein abundance prediction for proteins with measured labels.
+- Module B: bulk inference for proteomics-undetected or unknown proteins.
 - Module C: self-supervised PPI refinement.
 - Module D: single-cell transfer with pseudo-bulk alignment and a cell-graph head.
 
