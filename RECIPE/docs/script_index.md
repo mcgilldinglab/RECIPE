@@ -36,14 +36,6 @@ Benchmark wrappers:
 - `benchmarks/single_cell/run_single_cell_kernel_ridge_benchmark.py`: run the single-cell KRR benchmark.
 - `benchmarks/single_cell/run_single_cell_vanillann_benchmark.py`: run the single-cell VanillaNN benchmark.
 
-Optional training references:
-
-- `notebooks/training/bulk_mouse_unknown_training.ipynb`: bulk mouse unknown protein prediction with early stopping.
-- `notebooks/training/ppi_refinement_training.ipynb`: self-supervised PPI edge-refinement model training.
-- `notebooks/training/bulk_self_learning_training.ipynb`: bulk self-learning training for known and unknown targets.
-- `notebooks/training/single_cell_module_a_finetuning.ipynb`: single-cell Module A fine-tuning workflow.
-- `notebooks/training/single_cell_graph_training.ipynb`: single-cell graph model training workflow.
-
 Core package modules:
 
 - `src/recipe/data_construction.py`: data aliasing and construction helpers.

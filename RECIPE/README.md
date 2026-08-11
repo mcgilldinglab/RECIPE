@@ -13,10 +13,9 @@ The pipeline has four modules:
 
 - `src/recipe/`: reusable package code.
 - `scripts/`: command-line entry points for modules A-D, scRNA-seq phase scripts, data builders, and the smoke demo.
-- `notebooks/`: optional training references; command-line scripts are the recommended reproduction entry points.
 - `examples/smoke_data/`: tiny simulated data for a CPU-friendly demo.
 - `data/`: runtime data for the command-line workflows. Large arrays and graphs are tracked with Git LFS.
-- `data/splits/`: fixed train/validation/test CSV files used by the command-line runners and training references.
+- `data/splits/`: fixed train/validation/test CSV files used by the command-line runners.
 - `models/`: pretrained checkpoints tracked with Git LFS. See `models/README.md`.
 - `benchmarks/`: lightweight benchmark wrappers for external baseline comparisons.
 - `docs/`: Sphinx documentation source.

@@ -22,7 +22,7 @@ Large runtime assets in this directory are tracked with Git LFS when they are di
 
 ## Training Splits
 
-Fixed train/validation/test split CSV files are stored in `splits/`. They are small enough to commit directly and are used by the command-line runners and optional training references.
+Fixed train/validation/test split CSV files are stored in `splits/`. They are small enough to commit directly and are used by the command-line runners.
 
 Regenerate them with:
 
