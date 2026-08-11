@@ -17,7 +17,7 @@ The pipeline has four modules:
 - `examples/smoke_data/`: tiny simulated data for a CPU-friendly demo.
 - `data/`: runtime data for the command-line workflows. Large arrays and graphs are tracked with Git LFS.
 - `data/splits/`: fixed train/validation/test CSV files used by the training notebooks.
-- `models/`: optional checkpoints. See `models/README.md`.
+- `models/`: pretrained checkpoints tracked with Git LFS. See `models/README.md`.
 - `docs/`: Sphinx documentation source.
 
 ## System Requirements
@@ -65,7 +65,7 @@ The Python package lives in the repository subdirectory `RECIPE/`:
 python -m pip install "git+https://github.com/mcgilldinglab/RECIPE.git@main#subdirectory=RECIPE"
 ```
 
-If you install this way and keep data outside site-packages, pass the data location when running a workflow, for example with `--data-root /path/to/RECIPE/RECIPE/data` or with the file-level arguments shown below.
+If you install this way and keep data or checkpoints outside site-packages, pass their locations when running a workflow, for example with `--data-root /path/to/RECIPE/RECIPE/data` and `--model-root /path/to/RECIPE/RECIPE/models`, or with the file-level arguments shown below.
 
 ## Data
 
@@ -75,7 +75,7 @@ The repository includes a small simulated demo dataset:
 - `examples/smoke_data/sequence_embeddings.csv`
 - `examples/smoke_data/ppi_matrix.csv`
 
-Runtime data are under `data/`. Large files are tracked with Git LFS when they are suitable for GitHub. The full `data/networks/human_ppi_unknown.csv` is not committed because it is about 51-54 GB; distribute it separately and place it at that path if you need the human unknown workflow.
+Runtime data are under `data/`. Large files and pretrained checkpoints are tracked with Git LFS when they are suitable for GitHub. The full `data/networks/human_ppi_unknown.csv` is not committed because it is about 51-54 GB; distribute it separately and place it at that path if you need the human unknown workflow.
 
 To rebuild aliases from a private source data tree, arrange that tree with the same relative layout as `data/` and then run:
 
@@ -86,7 +86,7 @@ python scripts/build_data_aliases.py --manifest-json data/alias_manifest.json
 
 ## Pausing Feature Calculation
 
-The pausing feature can be rebuilt from a CDS annotation CSV and a coordinate-sorted BAM file. The CDS table should contain semicolon-separated `Start` and `End` columns, a reference column such as `seqnames`, a `Length` column, and a protein identifier column such as `protein_id` or `protein`.
+The pausing feature can be rebuilt from a CDS annotation CSV and a coordinate-sorted, indexed BAM file. The CDS table should contain semicolon-separated `Start` and `End` columns, a reference column such as `seqnames`, a `Length` column, and a protein identifier column such as `protein_id` or `protein`.
 
 Compute per-position pause scores:
 
@@ -109,6 +109,7 @@ python scripts/compute_pausing.py summarize \
 ```
 
 The score calculation trims the first and last 60 nt of the CDS by default, matching the manuscript preprocessing scripts. For single-cell or barcode-level score files, pass grouped columns such as `--group-cols CB,ENSP` and use `--threshold-mode relative_to_mean` if the high-pause definition should be relative to each group mean.
+By default `--average-denominator length` assumes the `Length` column is the CDS length used by the original preprocessing scripts. If your `Length` column is not the analyzed trimmed region length, use `--average-denominator positions` to normalize by the emitted CDS positions after trimming.
 
 ## Smoke Demo
 
@@ -166,6 +167,7 @@ Prepare the reproduction inputs:
 ```bash
 python scripts/prepare_public_data.py \
   --data-root "${DATA_ROOT}" \
+  --model-root "${MODEL_ROOT}" \
   --manifest-json "${OUTPUT_ROOT}/data_preparation.json"
 ```
 
@@ -174,6 +176,7 @@ To include the Module C coexpression summary, generate the mouse coexpression ma
 ```bash
 python scripts/prepare_public_data.py \
   --data-root "${DATA_ROOT}" \
+  --model-root "${MODEL_ROOT}" \
   --build-mouse-coexpression \
   --manifest-json "${OUTPUT_ROOT}/data_preparation_with_coexpression.json"
 ```
@@ -194,6 +197,7 @@ python scripts/run_recipe.py \
   --seed 12 \
   --device auto \
   --data-root "${DATA_ROOT}" \
+  --model-root "${MODEL_ROOT}" \
   --bulk-unknown-split-csv "${DATA_ROOT}/splits/bulk_mouse_unknown_seed12.csv" \
   --bulk-known-split-csv "${DATA_ROOT}/splits/bulk_mouse_known_seed12.csv" \
   --phase0-split-csv "${DATA_ROOT}/splits/single_cell_self_learning_seed12.csv" \
@@ -202,7 +206,7 @@ python scripts/run_recipe.py \
   --output-root "${OUTPUT_ROOT}/all_modules"
 ```
 
-When Module B and Module C are run together, Module C uses `${OUTPUT_ROOT}/all_modules/module_b/model.pth`. Per-module commands, explicit input paths, and expected output files are in `docs/reproduction.md`.
+The command above uses bundled checkpoints unless the matching training flags are passed. Add `--bulk-train`, `--train-phase0`, `--train-phase1`, or `--train-phase2` to retrain those parts. When Module B is retrained before Module C, Module C uses `${OUTPUT_ROOT}/all_modules/module_b/model.pth`; otherwise it falls back to the bundled known-protein bulk checkpoint. Per-module commands, explicit input paths, and expected output files are in `docs/reproduction.md`.
 
 ## Outputs
 
@@ -211,7 +215,7 @@ Module A and B write:
 - `predictions.csv`: transcript IDs, predictions, observed targets, split labels.
 - `embeddings.npy`: learned node embeddings.
 - `metrics.json`: train/validation/test metrics, scaling metadata, and checkpoint path.
-- `model.pth`: created when training is run or no default checkpoint exists.
+- `model.pth`: created when training is run or no default checkpoint exists; otherwise the bundled checkpoint path is recorded in `metrics.json`.
 
 Module C writes:
 

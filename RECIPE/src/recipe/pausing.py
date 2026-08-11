@@ -164,6 +164,8 @@ def iter_pause_score_records(
     pysam = _import_pysam()
     emitted = 0
     with pysam.AlignmentFile(str(bam_path), "rb") as bam_file:
+        if not bam_file.has_index():
+            raise ValueError(f"BAM file must be coordinate-sorted and indexed before pausing calculation: {bam_path}")
         for _, row in cds_df.iterrows():
             records, _ = _pause_records_for_row(
                 row=row,

@@ -35,18 +35,18 @@ python scripts/build_training_splits.py
 From the package root, check the reproduction inputs with:
 
 ```bash
-python scripts/prepare_public_data.py --data-root data --manifest-json outputs/reproduce/data_preparation.json
+python scripts/prepare_public_data.py --data-root data --model-root models --manifest-json outputs/reproduce/data_preparation.json
 ```
 
 Build the Module C mouse coexpression matrix with:
 
 ```bash
-python scripts/prepare_public_data.py --data-root data --build-mouse-coexpression
+python scripts/prepare_public_data.py --data-root data --model-root models --build-mouse-coexpression
 ```
 
 ## Pausing Data
 
-The pausing CSV files can be regenerated from CDS annotations and Ribo-seq BAM files with:
+The pausing CSV files can be regenerated from CDS annotations and coordinate-sorted, indexed Ribo-seq BAM files with:
 
 ```bash
 python scripts/compute_pausing.py score-bam \
@@ -59,6 +59,8 @@ python scripts/compute_pausing.py summarize \
   --summary-cds-csv data/pausing/cds_annotations.csv \
   --output-csv outputs/pausing/high_pause_counts.csv
 ```
+
+The default `--average-denominator length` mode follows the original scripts and uses the `Length` column for average read-depth normalization. Use `--average-denominator positions` when `Length` is not the analyzed CDS length after trimming.
 
 Track these with Git LFS:
 

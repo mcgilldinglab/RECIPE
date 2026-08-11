@@ -8,6 +8,7 @@ from _bootstrap import add_src_to_path
 add_src_to_path()
 
 from recipe.single_cell_riboseq_workflow import run_single_cell_transfer
+from recipe.utils import json_sanitize
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -20,6 +21,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--train-phase1", action="store_true")
     parser.add_argument("--train-phase2", action="store_true")
     parser.add_argument("--data-root", default=None, help="Directory containing RECIPE data subfolders.")
+    parser.add_argument("--model-root", default=None, help="Directory containing RECIPE checkpoint subfolders.")
     parser.add_argument("--bulk-reference-csv", default=None)
     parser.add_argument("--transcript-order-csv", default=None)
     parser.add_argument("--sequence-npy", default=None)
@@ -50,6 +52,7 @@ def main() -> None:
         train_phase1=args.train_phase1,
         train_phase2=args.train_phase2,
         data_root=args.data_root,
+        model_root=args.model_root,
         bulk_reference_csv=args.bulk_reference_csv,
         transcript_order_csv=args.transcript_order_csv,
         sequence_npy=args.sequence_npy,
@@ -66,7 +69,7 @@ def main() -> None:
         phase1_split_csv=args.phase1_split_csv,
         phase2_split_csv=args.phase2_split_csv,
     )
-    print(json.dumps(summary, indent=2, ensure_ascii=False))
+    print(json.dumps(json_sanitize(summary), indent=2, ensure_ascii=False, allow_nan=False))
 
 
 if __name__ == "__main__":

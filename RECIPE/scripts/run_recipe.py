@@ -8,6 +8,7 @@ from _bootstrap import add_src_to_path
 add_src_to_path()
 
 from recipe.pipeline import run_recipe_pipeline
+from recipe.utils import json_sanitize
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -19,6 +20,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, default=12)
     parser.add_argument("--device", default="auto")
     parser.add_argument("--data-root", default=None, help="Directory containing RECIPE data subfolders.")
+    parser.add_argument("--model-root", default=None, help="Directory containing RECIPE checkpoint subfolders.")
     parser.add_argument("--bulk-unknown-split-csv", default=None)
     parser.add_argument("--bulk-known-split-csv", default=None)
     parser.add_argument(
@@ -31,6 +33,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--bulk-target-col", default=None, help="Bulk protein abundance target column.")
     parser.add_argument("--bulk-pause-col", default=None, help="Bulk pausing-count column.")
     parser.add_argument("--no-bulk-pause", action="store_true", help="Use zero pausing features for bulk modules.")
+    parser.add_argument("--bulk-train", action="store_true", help="Force bulk model training for modules A/B.")
+    parser.add_argument("--bulk-max-epochs", type=int, default=3000)
+    parser.add_argument("--bulk-patience", type=int, default=200)
+    parser.add_argument("--bulk-learning-rate", type=float, default=7e-2)
+    parser.add_argument("--edge-max-epochs", type=int, default=1000)
+    parser.add_argument("--edge-patience", type=int, default=50)
+    parser.add_argument("--train-phase0", action="store_true")
+    parser.add_argument("--train-phase1", action="store_true")
+    parser.add_argument("--train-phase2", action="store_true")
     parser.add_argument("--phase0-split-csv", default=None)
     parser.add_argument("--phase1-split-csv", default=None)
     parser.add_argument("--phase2-split-csv", default=None)
@@ -48,17 +59,27 @@ def main() -> None:
         seed=args.seed,
         device_name=args.device,
         data_root=args.data_root,
+        model_root=args.model_root,
         bulk_unknown_split_csv=args.bulk_unknown_split_csv,
         bulk_known_split_csv=args.bulk_known_split_csv,
         bulk_expression_col=args.bulk_expression_col,
         bulk_target_col=args.bulk_target_col,
         bulk_pause_col=args.bulk_pause_col,
         use_bulk_pause=not args.no_bulk_pause,
+        bulk_train=args.bulk_train,
+        bulk_max_epochs=args.bulk_max_epochs,
+        bulk_patience=args.bulk_patience,
+        bulk_learning_rate=args.bulk_learning_rate,
+        edge_max_epochs=args.edge_max_epochs,
+        edge_patience=args.edge_patience,
+        train_phase0=args.train_phase0,
+        train_phase1=args.train_phase1,
+        train_phase2=args.train_phase2,
         phase0_split_csv=args.phase0_split_csv,
         phase1_split_csv=args.phase1_split_csv,
         phase2_split_csv=args.phase2_split_csv,
     )
-    print(json.dumps(summary, indent=2, ensure_ascii=False))
+    print(json.dumps(json_sanitize(summary), indent=2, ensure_ascii=False, allow_nan=False))
 
 
 if __name__ == "__main__":

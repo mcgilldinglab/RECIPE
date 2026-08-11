@@ -14,6 +14,7 @@ from recipe.pausing import (
     summarize_high_pause_counts_csv,
     write_pause_scores_from_bam,
 )
+from recipe.utils import json_sanitize
 
 
 def _split_columns(value: str | None) -> list[str] | None:
@@ -36,7 +37,12 @@ def _add_cds_score_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--trim-end-nt", type=int, default=60, help="Nucleotides trimmed from the last CDS segment.")
     parser.add_argument("--codon-step", type=int, default=3)
     parser.add_argument("--count-width", type=int, default=3)
-    parser.add_argument("--average-denominator", choices=("length", "positions"), default="length")
+    parser.add_argument(
+        "--average-denominator",
+        choices=("length", "positions"),
+        default="length",
+        help="Use Length/codon_step or the number of emitted CDS positions for average read-depth normalization.",
+    )
     parser.add_argument("--chunk-size", type=int, default=100000)
     parser.add_argument("--max-records", type=int, default=None, help="Optional debug limit for emitted pause-score rows.")
 
@@ -140,7 +146,7 @@ def main() -> None:
     else:
         raise ValueError(f"Unsupported command: {args.command}")
 
-    print(json.dumps(summary, indent=2, ensure_ascii=False))
+    print(json.dumps(json_sanitize(summary), indent=2, ensure_ascii=False, allow_nan=False))
 
 
 if __name__ == "__main__":

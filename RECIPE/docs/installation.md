@@ -9,7 +9,7 @@ The local tested environment is the `pyg` conda environment:
 - PyTorch `2.1.1`
 - CUDA runtime reported by PyTorch `12.1`
 - PyTorch Geometric `2.5.3`
-- `numpy 1.24.3`, `pandas 2.0.3`, `scipy 1.10.1`, `scikit-learn 1.3.2`
+- `numpy 1.24.3`, `pandas 2.0.3`, `pysam 0.22.1`, `scipy 1.10.1`, `scikit-learn 1.3.2`
 
 ## Requirements
 
@@ -18,6 +18,7 @@ The local tested environment is the `pyg` conda environment:
 - `torch-geometric >=2.5` compatible with your PyTorch/CUDA build
 - `numpy >=1.24`
 - `pandas >=2.0`
+- `pysam >=0.22`
 - `scipy >=1.10`
 - `scikit-learn >=1.3`
 - `matplotlib >=3.6`
@@ -49,7 +50,7 @@ Typical fresh setup time: about 10-30 minutes, depending mostly on PyTorch/PyG d
 python -m pip install "git+https://github.com/mcgilldinglab/RECIPE.git@main#subdirectory=RECIPE"
 ```
 
-If runtime data are outside the installed package, pass their location when running a workflow with `--data-root /path/to/RECIPE/RECIPE/data` or with the file-level input arguments listed in `reproduction.md`.
+If runtime data or checkpoints are outside the installed package, pass their locations when running a workflow with `--data-root /path/to/RECIPE/RECIPE/data` and `--model-root /path/to/RECIPE/RECIPE/models`, or use the file-level input arguments listed in `reproduction.md`.
 
 ## Verify
 

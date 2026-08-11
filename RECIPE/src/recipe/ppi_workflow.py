@@ -64,6 +64,7 @@ def run_ppi_refinement(
     export_score_matrix: bool = False,
     log_every: int = 10,
     data_root: str | Path | None = None,
+    model_root: str | Path | None = None,
     reference_csv: str | Path | None = None,
     sequence_npy: str | Path | None = None,
     ppi_csv: str | Path | None = None,
@@ -84,6 +85,7 @@ def run_ppi_refinement(
         condition_name=condition_name,
         scale_method="log_median",
         data_root=data_root,
+        model_root=model_root,
         reference_csv=reference_csv,
         sequence_npy=sequence_npy,
         ppi_csv=ppi_csv,
@@ -98,6 +100,7 @@ def run_ppi_refinement(
         raise FileNotFoundError("A trained bulk checkpoint is required before running module C.")
 
     model = load_model_state(model, checkpoint, device=device)
+    bulk_checkpoint_load = getattr(model, "_recipe_load_report", None)
     data = data.to(device)
     _, node_embeddings = predict_bulk_outputs(model, data)
     positive_edges = load_positive_ppi_edges(config.ppi_csv)
@@ -159,6 +162,7 @@ def run_ppi_refinement(
         "condition": condition_name.upper(),
         "device": str(device),
         "bulk_checkpoint": str(checkpoint),
+        "bulk_checkpoint_load": bulk_checkpoint_load,
         "edge_classifier": edge_summary,
         "node_count": int(data.num_nodes),
         "known_edge_count": int(positive_edges.size(1)),

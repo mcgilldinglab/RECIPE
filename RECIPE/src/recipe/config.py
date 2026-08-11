@@ -7,6 +7,7 @@ from typing import Mapping
 from .assets import (
     BULK_DATA_DIR,
     DATA_ROOT,
+    MODEL_ROOT,
     BULK_MODEL_DIR,
     NETWORK_DATA_DIR,
     PAUSING_DATA_DIR,
@@ -168,9 +169,21 @@ def _replace_data_root(path: Path | None, data_root: str | Path | None) -> Path 
     return root / relative
 
 
+def _replace_model_root(path: Path | None, model_root: str | Path | None) -> Path | None:
+    if path is None or model_root is None:
+        return path
+    root = Path(model_root).expanduser().resolve()
+    try:
+        relative = path.resolve().relative_to(MODEL_ROOT.resolve())
+    except ValueError:
+        relative = Path(path.name)
+    return root / relative
+
+
 def with_bulk_input_paths(
     config: BulkTaskConfig,
     data_root: str | Path | None = None,
+    model_root: str | Path | None = None,
     reference_csv: str | Path | None = None,
     sequence_npy: str | Path | None = None,
     ppi_csv: str | Path | None = None,
@@ -184,6 +197,7 @@ def with_bulk_input_paths(
         sequence_npy=_replace_data_root(config.sequence_npy, data_root),
         ppi_csv=_replace_data_root(config.ppi_csv, data_root),
         pause_csv=_replace_data_root(config.pause_csv, data_root),
+        default_checkpoint=_replace_model_root(config.default_checkpoint, model_root),
     )
     overrides = {
         "reference_csv": _resolve_optional_path(reference_csv),
@@ -198,6 +212,7 @@ def with_bulk_input_paths(
 def with_single_cell_input_paths(
     config: SingleCellTransferConfig,
     data_root: str | Path | None = None,
+    model_root: str | Path | None = None,
     bulk_reference_csv: str | Path | None = None,
     transcript_order_csv: str | Path | None = None,
     sequence_npy: str | Path | None = None,
@@ -226,6 +241,7 @@ def with_single_cell_input_paths(
         expression_normalized_csv=_replace_data_root(config.expression_normalized_csv, data_root),
         metadata_csv=_replace_data_root(config.metadata_csv, data_root),
         pause_matrix_csv=_replace_data_root(config.pause_matrix_csv, data_root),
+        phase0_init_checkpoint=_replace_model_root(config.phase0_init_checkpoint, model_root),
     )
     overrides = {
         "bulk_reference_csv": _resolve_optional_path(bulk_reference_csv),

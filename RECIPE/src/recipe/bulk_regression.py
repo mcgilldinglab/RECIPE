@@ -188,6 +188,22 @@ def predict_bulk_outputs(model, data) -> tuple[torch.Tensor, torch.Tensor]:
     return predictions.detach().cpu(), embeddings.detach().cpu()
 
 
+def _metric_improved(candidate_r2: float, candidate_loss: float, best_r2: float, best_loss: float, best_epoch: int) -> bool:
+    if best_epoch == 0:
+        return True
+
+    candidate_r2_is_finite = np.isfinite(candidate_r2)
+    best_r2_is_finite = np.isfinite(best_r2)
+
+    if candidate_r2_is_finite and (not best_r2_is_finite or candidate_r2 > best_r2):
+        return True
+    if candidate_r2_is_finite and best_r2_is_finite and np.isclose(candidate_r2, best_r2):
+        return candidate_loss < best_loss
+    if (not candidate_r2_is_finite) and (not best_r2_is_finite):
+        return candidate_loss < best_loss
+    return False
+
+
 def train_cross_condition_bulk(
     model,
     train_data,
@@ -202,10 +218,10 @@ def train_cross_condition_bulk(
 
     best_state = deepcopy(model.state_dict())
     best_epoch = 0
-    best_train_r2 = float("-inf")
+    best_train_r2 = float("nan")
     best_train_loss = float("inf")
     best_eval_loss = float("inf")
-    best_eval_r2 = float("-inf")
+    best_eval_r2 = float("nan")
     patience_counter = 0
     history: list[dict[str, float]] = []
 
@@ -222,8 +238,6 @@ def train_cross_condition_bulk(
             train_data.y.detach().cpu().numpy(),
             train_out.detach().cpu().numpy(),
         )
-        monitored_r2 = float("-inf") if np.isnan(train_r2) else float(train_r2)
-
         eval_metrics = evaluate_graph_regression(model, eval_data)
         history_entry = {
             "epoch": float(epoch),
@@ -234,10 +248,16 @@ def train_cross_condition_bulk(
         }
         history.append(history_entry)
 
-        if monitored_r2 > best_train_r2:
+        if _metric_improved(
+            candidate_r2=float(train_r2),
+            candidate_loss=train_loss_value,
+            best_r2=best_train_r2,
+            best_loss=best_train_loss,
+            best_epoch=best_epoch,
+        ):
             best_state = deepcopy(model.state_dict())
             best_epoch = epoch
-            best_train_r2 = monitored_r2
+            best_train_r2 = float(train_r2)
             best_train_loss = train_loss_value
             best_eval_loss = eval_metrics["loss"]
             best_eval_r2 = eval_metrics["r2"]
@@ -280,11 +300,11 @@ def train_single_graph_bulk(
 
     best_state = deepcopy(model.state_dict())
     best_epoch = 0
-    best_val_r2 = float("-inf")
+    best_val_r2 = float("nan")
     best_train_loss = float("inf")
     best_val_loss = float("inf")
     best_test_loss = float("inf")
-    best_test_r2 = float("-inf")
+    best_test_r2 = float("nan")
     patience_counter = 0
     history: list[dict[str, float]] = []
 
@@ -315,11 +335,16 @@ def train_single_graph_bulk(
         }
         history.append(history_entry)
 
-        monitored_r2 = float("-inf") if np.isnan(val_metrics["r2"]) else float(val_metrics["r2"])
-        if monitored_r2 > best_val_r2:
+        if _metric_improved(
+            candidate_r2=float(val_metrics["r2"]),
+            candidate_loss=float(val_metrics["loss"]),
+            best_r2=best_val_r2,
+            best_loss=best_val_loss,
+            best_epoch=best_epoch,
+        ):
             best_state = deepcopy(model.state_dict())
             best_epoch = epoch
-            best_val_r2 = monitored_r2
+            best_val_r2 = float(val_metrics["r2"])
             best_train_loss = train_loss_value
             best_val_loss = val_metrics["loss"]
             best_test_loss = test_metrics["loss"]

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -19,7 +20,7 @@ from .bulk_regression import (
 )
 from .config import BulkTaskConfig, get_bulk_task_config, with_bulk_input_paths
 from .models import RBULK
-from .utils import resolve_device, save_json, set_seed
+from .utils import remap_legacy_rbulk_state_dict, resolve_device, save_json, set_seed
 
 
 @dataclass(frozen=True)
@@ -36,6 +37,7 @@ def build_bulk_graph_for_task(
     condition_name: str,
     scale_method: str = "log_median",
     data_root: str | Path | None = None,
+    model_root: str | Path | None = None,
     reference_csv: str | Path | None = None,
     sequence_npy: str | Path | None = None,
     ppi_csv: str | Path | None = None,
@@ -48,6 +50,7 @@ def build_bulk_graph_for_task(
     config = with_bulk_input_paths(
         get_bulk_task_config(task=task, species=species),
         data_root=data_root,
+        model_root=model_root,
         reference_csv=reference_csv,
         sequence_npy=sequence_npy,
         ppi_csv=ppi_csv,
@@ -134,7 +137,24 @@ def load_model_state(model: torch.nn.Module, checkpoint_path: Path, device: torc
     for key, value in payload.items():
         clean_key = key[7:] if key.startswith("module.") else key
         clean_state[clean_key] = value
-    model.load_state_dict(clean_state, strict=False)
+    clean_state, remapped_keys = remap_legacy_rbulk_state_dict(clean_state)
+    incompatible = model.load_state_dict(clean_state, strict=False)
+    load_report = {
+        "path": str(checkpoint_path),
+        "loaded_key_count": int(len(clean_state)),
+        "remapped_legacy_key_count": int(len(remapped_keys)),
+        "remapped_legacy_keys": remapped_keys,
+        "missing_keys": list(incompatible.missing_keys),
+        "unexpected_keys": list(incompatible.unexpected_keys),
+    }
+    setattr(model, "_recipe_load_report", load_report)
+    if load_report["missing_keys"] or load_report["unexpected_keys"]:
+        warnings.warn(
+            f"Checkpoint loaded with key mismatch for {checkpoint_path}: "
+            f"{len(load_report['missing_keys'])} missing, {len(load_report['unexpected_keys'])} unexpected.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
     return model
 
 
@@ -208,6 +228,7 @@ def run_bulk_module(
     log_every: int = 50,
     scale_method: str = "log_median",
     data_root: str | Path | None = None,
+    model_root: str | Path | None = None,
     reference_csv: str | Path | None = None,
     sequence_npy: str | Path | None = None,
     ppi_csv: str | Path | None = None,
@@ -229,6 +250,7 @@ def run_bulk_module(
         condition_name=condition_name,
         scale_method=scale_method,
         data_root=data_root,
+        model_root=model_root,
         reference_csv=reference_csv,
         sequence_npy=sequence_npy,
         ppi_csv=ppi_csv,
@@ -267,6 +289,7 @@ def run_bulk_module(
     else:
         model = load_model_state(model, checkpoint, device=device)
         training_summary["loaded_checkpoint"] = str(checkpoint)
+        training_summary["checkpoint_load"] = getattr(model, "_recipe_load_report", None)
 
     predictions, embeddings = predict_bulk_outputs(model, data)
     train_metrics = evaluate_graph_regression(model, data, splits.train_idx.to(device))

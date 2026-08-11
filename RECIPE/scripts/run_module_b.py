@@ -8,6 +8,7 @@ from _bootstrap import add_src_to_path
 add_src_to_path()
 
 from recipe.bulk_workflow import run_bulk_module
+from recipe.utils import json_sanitize
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -20,6 +21,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--train", action="store_true", help="Force model training even if a checkpoint exists.")
     parser.add_argument("--checkpoint-path", default=None)
     parser.add_argument("--data-root", default=None, help="Directory containing RECIPE data subfolders.")
+    parser.add_argument("--model-root", default=None, help="Directory containing RECIPE checkpoint subfolders.")
     parser.add_argument("--reference-csv", default=None, help="Bulk reference CSV.")
     parser.add_argument("--sequence-npy", default=None, help="Sequence embedding NPY.")
     parser.add_argument("--ppi-csv", default=None, help="PPI adjacency CSV.")
@@ -53,6 +55,7 @@ def main() -> None:
         train=args.train,
         checkpoint_path=args.checkpoint_path,
         data_root=args.data_root,
+        model_root=args.model_root,
         reference_csv=args.reference_csv,
         sequence_npy=args.sequence_npy,
         ppi_csv=args.ppi_csv,
@@ -66,7 +69,7 @@ def main() -> None:
         patience=args.patience,
         learning_rate=args.learning_rate,
     )
-    print(json.dumps(summary, indent=2, ensure_ascii=False))
+    print(json.dumps(json_sanitize(summary), indent=2, ensure_ascii=False, allow_nan=False))
 
 
 if __name__ == "__main__":

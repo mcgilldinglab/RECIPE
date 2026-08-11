@@ -20,7 +20,7 @@ from recipe.bulk_regression import (
     train_single_graph_bulk,
 )
 from recipe.bulk_workflow import BulkSplitBundle, make_bulk_model, save_bulk_outputs
-from recipe.utils import resolve_device, set_seed
+from recipe.utils import json_sanitize, resolve_device, set_seed
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -132,7 +132,7 @@ def main() -> None:
     )
     summary["outputs"] = output_files
     summary["elapsed_seconds"] = round(time.perf_counter() - start_time, 3)
-    print(json.dumps(summary, indent=2, ensure_ascii=False))
+    print(json.dumps(json_sanitize(summary), indent=2, ensure_ascii=False, allow_nan=False))
 
 
 if __name__ == "__main__":

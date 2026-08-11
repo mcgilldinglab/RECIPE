@@ -8,6 +8,7 @@ from _bootstrap import add_src_to_path
 add_src_to_path()
 
 from recipe.ppi_workflow import run_ppi_refinement
+from recipe.utils import json_sanitize
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -19,6 +20,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--device", default="auto")
     parser.add_argument("--bulk-checkpoint-path", default=None)
     parser.add_argument("--data-root", default=None, help="Directory containing RECIPE data subfolders.")
+    parser.add_argument("--model-root", default=None, help="Directory containing RECIPE checkpoint subfolders.")
     parser.add_argument("--reference-csv", default=None, help="Bulk reference CSV used by the known-protein model.")
     parser.add_argument("--sequence-npy", default=None, help="Sequence embedding NPY used by the known-protein model.")
     parser.add_argument("--ppi-csv", default=None, help="Known PPI adjacency CSV.")
@@ -54,6 +56,7 @@ def main() -> None:
         threshold=args.threshold,
         export_score_matrix=args.export_score_matrix,
         data_root=args.data_root,
+        model_root=args.model_root,
         reference_csv=args.reference_csv,
         sequence_npy=args.sequence_npy,
         ppi_csv=args.ppi_csv,
@@ -63,7 +66,7 @@ def main() -> None:
         pause_col=args.pause_col,
         use_pause=not args.no_pause,
     )
-    print(json.dumps(summary, indent=2, ensure_ascii=False))
+    print(json.dumps(json_sanitize(summary), indent=2, ensure_ascii=False, allow_nan=False))
 
 
 if __name__ == "__main__":

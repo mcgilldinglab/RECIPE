@@ -49,7 +49,7 @@ python -m pip install "torch>=2.1" "torch-geometric>=2.5"
 python -m pip install "git+https://github.com/mcgilldinglab/RECIPE.git@main#subdirectory=RECIPE"
 ```
 
-If the package is installed directly from GitHub, keep data outside the Python environment and pass `--data-root /path/to/RECIPE/RECIPE/data` or the file-level input arguments shown in the reproduction guide.
+If the package is installed directly from GitHub, keep data and checkpoints outside the Python environment and pass `--data-root /path/to/RECIPE/RECIPE/data` plus `--model-root /path/to/RECIPE/RECIPE/models`, or use the file-level input arguments shown in the reproduction guide.
 
 ## Quick Start
 

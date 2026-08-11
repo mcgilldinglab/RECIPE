@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -37,7 +38,7 @@ from .single_cell import (
     load_metadata,
     load_pause_matrix,
 )
-from .utils import resolve_device, safe_r2, save_json, set_seed
+from .utils import remap_legacy_rbulk_state_dict, resolve_device, safe_r2, save_json, set_seed
 
 
 def _load_model_state(model: torch.nn.Module, checkpoint_path: Path, device: torch.device) -> torch.nn.Module:
@@ -49,7 +50,24 @@ def _load_model_state(model: torch.nn.Module, checkpoint_path: Path, device: tor
     if not isinstance(payload, dict):
         raise TypeError(f"Unsupported checkpoint payload type: {type(payload)!r}")
     cleaned = {key[7:] if key.startswith("module.") else key: value for key, value in payload.items()}
-    model.load_state_dict(cleaned, strict=False)
+    cleaned, remapped_keys = remap_legacy_rbulk_state_dict(cleaned)
+    incompatible = model.load_state_dict(cleaned, strict=False)
+    load_report = {
+        "path": str(checkpoint_path),
+        "loaded_key_count": int(len(cleaned)),
+        "remapped_legacy_key_count": int(len(remapped_keys)),
+        "remapped_legacy_keys": remapped_keys,
+        "missing_keys": list(incompatible.missing_keys),
+        "unexpected_keys": list(incompatible.unexpected_keys),
+    }
+    setattr(model, "_recipe_load_report", load_report)
+    if load_report["missing_keys"] or load_report["unexpected_keys"]:
+        warnings.warn(
+            f"Checkpoint loaded with key mismatch for {checkpoint_path}: "
+            f"{len(load_report['missing_keys'])} missing, {len(load_report['unexpected_keys'])} unexpected.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
     return model
 
 
@@ -670,11 +688,13 @@ def run_single_cell_phase0(
     checkpoint = Path(checkpoint_path) if checkpoint_path else config.phase0_init_checkpoint
     training_summary: dict[str, Any]
     self_learning_summary: dict[str, Any] | None = None
+    checkpoint_load_report: dict[str, Any] | None = None
 
     if train or checkpoint is None or not checkpoint.exists():
         print("[Phase0] training bulk self-learning model")
         if (not notebook_style_data) and warm_start and config.phase0_init_checkpoint and config.phase0_init_checkpoint.exists():
             model = _load_model_state(model, config.phase0_init_checkpoint, device=device)
+            checkpoint_load_report = getattr(model, "_recipe_load_report", None)
 
         if notebook_style_data:
             training_summary = {
@@ -734,8 +754,12 @@ def run_single_cell_phase0(
     else:
         print(f"[Phase0] loading checkpoint: {checkpoint}")
         model = _load_model_state(model, checkpoint, device=device)
+        checkpoint_load_report = getattr(model, "_recipe_load_report", None)
         training_summary = {"loaded_checkpoint": str(checkpoint)}
         final_target = data.y.view(-1).detach().cpu().numpy()
+
+    if checkpoint_load_report is not None:
+        training_summary["checkpoint_load"] = checkpoint_load_report
 
     predictions, _ = predict_bulk_outputs(model, data)
     prediction_vector = predictions.view(-1).numpy()
@@ -855,9 +879,11 @@ def run_single_cell_phase1(
     phase0_checkpoint = Path(phase0_checkpoint_path)
     print(f"[Phase1] loading phase0 checkpoint: {phase0_checkpoint}")
     model = _load_model_state(model, phase0_checkpoint, device=device)
+    phase0_checkpoint_load = getattr(model, "_recipe_load_report", None)
 
     checkpoint = Path(checkpoint_path) if checkpoint_path else output_dir / "phase1_pseudobulk_model.pth"
     history: list[dict[str, float]] = []
+    checkpoint_load_report: dict[str, Any] | None = None
 
     if train or not checkpoint.exists():
         print("[Phase1] training pseudobulk fine-tuning")
@@ -931,6 +957,7 @@ def run_single_cell_phase1(
     else:
         print(f"[Phase1] loading existing checkpoint: {checkpoint}")
         model = _load_model_state(model, checkpoint, device=device)
+        checkpoint_load_report = getattr(model, "_recipe_load_report", None)
 
     model.eval()
     with torch.no_grad():
@@ -971,6 +998,8 @@ def run_single_cell_phase1(
         "train_metrics": {"loss": train_loss, "r2": train_r2},
         "val_metrics": {"loss": val_loss, "r2": val_r2},
         "test_metrics": {"loss": test_loss, "r2": test_r2},
+        "phase0_checkpoint_load": phase0_checkpoint_load,
+        "checkpoint_load": checkpoint_load_report,
         "scaling": scaling_summary,
         "inputs": {
             "expression_csv": str(config.expression_csv),
@@ -1089,6 +1118,7 @@ def run_single_cell_phase2(
     phase1_bulk_model = RBULK(sequence_dim=int(np.load(config.sequence_npy).shape[1])).to(device)
     print(f"[Phase2] loading phase1 checkpoint: {phase1_checkpoint_path}")
     phase1_bulk_model = _load_model_state(phase1_bulk_model, Path(phase1_checkpoint_path), device=device)
+    phase1_checkpoint_load = getattr(phase1_bulk_model, "_recipe_load_report", None)
     pause_matrix_df = load_pause_matrix(str(config.pause_matrix_csv)).reindex(expression_df.index).fillna(0.0)
     ppi_edge_index, ppi_edge_attr = load_ppi_graph(config.ppi_csv, add_loops=True)
     all_z_array, all_y_array, cell_names = export_bulk_embeddings_for_cells(
@@ -1126,6 +1156,7 @@ def run_single_cell_phase2(
     model = RSCHead(input_dim=int(all_z_array.shape[2]), hidden_dim=hidden_dim, dropout=dropout).to(device)
     checkpoint = Path(checkpoint_path) if checkpoint_path else output_dir / "phase2_rsc_model.pth"
     history: list[dict[str, float]] = []
+    checkpoint_load_report: dict[str, Any] | None = None
     graph_stats = {
         "mode": "shared_global_cell_graph",
         "n_neighbors": int(n_neighbors),
@@ -1185,6 +1216,7 @@ def run_single_cell_phase2(
     else:
         print(f"[Phase2] loading existing checkpoint: {checkpoint}")
         model = _load_model_state(model, checkpoint, device=device)
+        checkpoint_load_report = getattr(model, "_recipe_load_report", None)
 
     train_loss, train_r2 = _evaluate_rsc(
         model, all_z_array, edge_index, label_tensor, rich_mask, train_ids, device, batch_size
@@ -1232,6 +1264,8 @@ def run_single_cell_phase2(
         "cell_count": int(predicted_matrix.shape[0]),
         "gene_count": int(predicted_matrix.shape[1]),
         "best_epoch": int(best_epoch),
+        "phase1_checkpoint_load": phase1_checkpoint_load,
+        "checkpoint_load": checkpoint_load_report,
         "inputs": {
             "expression_normalized_csv": str(config.expression_normalized_csv),
             "metadata_csv": str(config.metadata_csv),
@@ -1269,6 +1303,7 @@ def run_single_cell_transfer(
     train_phase1: bool = False,
     train_phase2: bool = False,
     data_root: str | Path | None = None,
+    model_root: str | Path | None = None,
     bulk_reference_csv: str | Path | None = None,
     transcript_order_csv: str | Path | None = None,
     sequence_npy: str | Path | None = None,
@@ -1288,6 +1323,7 @@ def run_single_cell_transfer(
     config = with_single_cell_input_paths(
         SINGLE_CELL_TRANSFER_CONFIG,
         data_root=data_root,
+        model_root=model_root,
         bulk_reference_csv=bulk_reference_csv,
         transcript_order_csv=transcript_order_csv,
         sequence_npy=sequence_npy,
