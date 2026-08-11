@@ -26,7 +26,7 @@ The local tested environment is the `pyg` conda environment:
 - `seaborn >=0.13`
 - `openpyxl >=3.1`
 
-No non-standard hardware is required for installation or the smoke demo. A CUDA-capable GPU is recommended for full-size training. The full human unknown PPI graph is about 51-54 GB and is not distributed in GitHub.
+No non-standard hardware is required for installation or the smoke demo. A CUDA-capable GPU is recommended for full-size training.
 
 ## Fresh Environment
 
@@ -56,10 +56,9 @@ If runtime data or checkpoints are outside the installed package, pass their loc
 
 ```bash
 python -c "import recipe; print(recipe.__file__)"
-python scripts/run_smoke_demo.py --device cpu --output-dir outputs/smoke_demo
 ```
 
-The smoke demo should finish in under 1 minute and create `predictions.csv`, `embeddings.npy`, and `metrics.json`. The tested `pyg` CPU run completed in about 4.7 seconds wall time.
+For an end-to-end functional check, run the smoke demo described in [`reproduction.md`](reproduction.md#quick-check).
 
 ## Build Documentation Locally
 

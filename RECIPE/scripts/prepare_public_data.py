@@ -57,7 +57,15 @@ REQUIRED_PUBLIC_MODELS = (
 EXTERNAL_PUBLIC_INPUTS = (
     {
         "relative_path": "networks/human_ppi_unknown.csv",
-        "reason": "Required for the human unknown-protein workflow; about 51-54 GB and distributed outside GitHub.",
+        "reason": "Required for the human unknown-protein workflow; about 54 GB after extraction.",
+        "landing_page_url": "https://drive.google.com/file/d/1UIefENLMUvWTJ9K8jxVmuGdPFD4Vtnrc/view?usp=sharing",
+        "download_url": (
+            "https://drive.usercontent.google.com/download"
+            "?id=1UIefENLMUvWTJ9K8jxVmuGdPFD4Vtnrc&export=download&confirm=t"
+        ),
+        "compressed_filename": "human_ppi_unknown.csv.gz",
+        "compressed_size_bytes": 3_306_294_128,
+        "sha256": "2c7b7cd3e3ca7de35354aa81a6caf34c37da8d4e20406329b49bde09dd48704e",
     },
 )
 
