@@ -746,8 +746,6 @@ def _plot_phase2_performance(df: pd.DataFrame, outdir: Path, stem: str) -> dict[
         "n": int(len(df)),
         "pearson_r": float(corr),
         "pearson_p": float(p_value),
-        "pdf": str(pdf_path),
-        "png": str(png_path),
     }
 
 
@@ -796,6 +794,10 @@ def _write_phase2_performance_outputs(
         "all_labeled_predictions": str(all_csv),
         "test_predictions": str(test_csv),
         "summary": str(summary_csv),
+        "all_labeled_performance_pdf": str(output_dir / f"{prefix}_all_labeled_performance.pdf"),
+        "all_labeled_performance_png": str(output_dir / f"{prefix}_all_labeled_performance.png"),
+        "test_performance_pdf": str(output_dir / f"{prefix}_test_performance.pdf"),
+        "test_performance_png": str(output_dir / f"{prefix}_test_performance.png"),
         "plots": summary_rows,
     }
 
@@ -1443,9 +1445,12 @@ def run_single_cell_phase2(
     )
     prediction_csv = output_dir / "phase2_predicted_cell_matrix.csv"
     prediction_df.to_csv(prediction_csv)
+    performance_prediction_df = pd.read_csv(prediction_csv, index_col=0)
+    performance_prediction_df.index = performance_prediction_df.index.astype(str)
+    performance_prediction_df.columns = performance_prediction_df.columns.astype(str).str.split(".").str[0]
     performance_prefix = f"seed{seed}_npcs{n_pcs}_k{n_neighbors}"
     performance_outputs = _write_phase2_performance_outputs(
-        prediction_df=prediction_df,
+        prediction_df=performance_prediction_df,
         metadata_df=metadata_df,
         ordered_df=ordered_df,
         label_values=label_values,
