@@ -86,4 +86,4 @@ CUDA_VISIBLE_DEVICES=2 torchrun --nproc_per_node=1 --nnodes=1 --node_rank=0 \
 
 ## Figure Note
 
-`c10_best_on_c10_test.pdf` was generated from the Module D scRNA-seq branch, not from scTranslator or the scRibo-seq branch. The figure evaluates the nanoSPINS cell-graph checkpoint `phase3_nanospins_best.pth` for C10/SVEC testing.
+`c10_best_on_c10_test.pdf`, `svec_best_on_svec_test.pdf`, and the C10/SVEC cross-condition scatter plots were generated from the Module D scRNA-seq branch, not from scTranslator or the scRibo-seq branch. These figures evaluate the nanoSPINS cell-graph checkpoints `phase3_nanospins_best.pth` from the archived C10/SVEC phase3 runs. Use `scripts/run_module_d.py --assay scrnaseq --scrnaseq-reproduction-preset phase3_c10_svec_test_scatter` to recreate them from the archived phase23 artifacts.

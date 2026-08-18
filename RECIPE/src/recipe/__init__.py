@@ -18,6 +18,7 @@ from .single_cell_rnaseq_workflow import (
     run_phase0 as run_rnaseq_phase0,
     run_phase12 as run_rnaseq_phase12,
     run_phase3 as run_rnaseq_phase3,
+    run_phase3_c10_svec_scatter as run_rnaseq_phase3_c10_svec_scatter,
     run_scrnaseq_workflow,
     run_phase023 as run_rnaseq_phase023,
 )
@@ -38,6 +39,7 @@ __all__ = [
     "run_rnaseq_phase0",
     "run_rnaseq_phase12",
     "run_rnaseq_phase3",
+    "run_rnaseq_phase3_c10_svec_scatter",
     "run_scrnaseq_workflow",
     "run_rnaseq_phase023",
 ]

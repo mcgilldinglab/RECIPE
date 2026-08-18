@@ -10,6 +10,7 @@ from _bootstrap import add_src_to_path
 add_src_to_path()
 
 from recipe.single_cell_rnaseq_workflow import (
+    run_phase3_c10_svec_scatter as run_scrnaseq_phase3_c10_svec_scatter,
     run_phase0 as run_scrnaseq_phase0,
     run_phase12 as run_scrnaseq_phase12,
     run_phase3 as run_scrnaseq_phase3,
@@ -68,7 +69,56 @@ def _default_scrnaseq_args(args: argparse.Namespace, step: str) -> list[str]:
     raise ValueError(f"Unsupported scRNA-seq workflow step: {step}")
 
 
+def _split_csv_arg(value: str) -> list[str]:
+    if not value:
+        return []
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def _run_scrnaseq_reproduction(args: argparse.Namespace) -> dict[str, object]:
+    if args.scrnaseq_reproduction_preset != "phase3_c10_svec_test_scatter":
+        raise ValueError(f"Unsupported scRNA-seq reproduction preset: {args.scrnaseq_reproduction_preset}")
+
+    output_dir = Path(args.output_dir).expanduser().resolve()
+    forwarded = [
+        "--phase23-root",
+        _required_path(args, "scrnaseq_phase23_root", "--scrnaseq-phase23-root"),
+        "--bundle-dir",
+        _required_path(args, "scrnaseq_bundle_dir", "--scrnaseq-bundle-dir"),
+        "--output-dir",
+        str(output_dir),
+        "--device",
+        str(args.device),
+    ]
+    optional_paths = [
+        ("nanospins_truth_csv", "--truth-csv"),
+        ("nanospins_mapping_xlsx", "--mapping-xlsx"),
+        ("scrnaseq_c10_summary", "--c10-summary"),
+        ("scrnaseq_svec_summary", "--svec-summary"),
+    ]
+    for attr, option in optional_paths:
+        value = getattr(args, attr)
+        if value is not None:
+            forwarded.extend([option, str(Path(value).expanduser().resolve())])
+
+    scenarios = _split_csv_arg(args.scrnaseq_reproduction_scenarios)
+    if scenarios:
+        forwarded.append("--scenarios")
+        forwarded.extend(scenarios)
+
+    run_scrnaseq_phase3_c10_svec_scatter(forwarded)
+    return {
+        "assay": "scrnaseq",
+        "status": "completed",
+        "preset": args.scrnaseq_reproduction_preset,
+        "output_dir": str(output_dir),
+    }
+
+
 def _run_scrnaseq_module_d(args: argparse.Namespace, steps: tuple[str, ...]) -> dict[str, object]:
+    if args.scrnaseq_reproduction_preset is not None:
+        return _run_scrnaseq_reproduction(args)
+
     normalized_steps: list[str] = []
     for step in steps:
         key = step.lower()
@@ -163,6 +213,32 @@ def build_parser() -> argparse.ArgumentParser:
         help="Use the archived scRibo-seq Module D settings for a named reproduction run.",
     )
     parser.add_argument(
+        "--scrnaseq-reproduction-preset",
+        choices=("phase3_c10_svec_test_scatter",),
+        default=None,
+        help="Recreate archived scRNA-seq Module D phase3 C10/SVEC scatter outputs.",
+    )
+    parser.add_argument(
+        "--scrnaseq-phase23-root",
+        default=None,
+        help="Root containing archived C10/seed*/phase3 and SVEC/seed*/phase3 outputs.",
+    )
+    parser.add_argument(
+        "--scrnaseq-c10-summary",
+        default=None,
+        help="Optional C10 phase3_nanospins_summary.json for scRNA-seq plot reproduction.",
+    )
+    parser.add_argument(
+        "--scrnaseq-svec-summary",
+        default=None,
+        help="Optional SVEC phase3_nanospins_summary.json for scRNA-seq plot reproduction.",
+    )
+    parser.add_argument(
+        "--scrnaseq-reproduction-scenarios",
+        default="",
+        help="Comma-separated C10/SVEC plot scenarios to recreate; defaults to all four.",
+    )
+    parser.add_argument(
         "--phase2-n-neighbors",
         "--phase2-k",
         dest="phase2_n_neighbors",
@@ -231,6 +307,8 @@ def _apply_scriboseq_reproduction_preset(args: argparse.Namespace) -> None:
 def main() -> None:
     args = build_parser().parse_args()
     _apply_scriboseq_reproduction_preset(args)
+    if args.scrnaseq_reproduction_preset is not None and args.assay != "scrnaseq":
+        raise ValueError("--scrnaseq-reproduction-preset can only be used with --assay scrnaseq.")
     steps = tuple(step.strip() for step in args.steps.split(",") if step.strip())
     if args.assay == "scrnaseq":
         summary = _run_scrnaseq_module_d(args, steps=steps)

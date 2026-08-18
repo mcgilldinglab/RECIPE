@@ -9,7 +9,7 @@ Packaged module entry points:
 - `scripts/run_module_a.py`: module A, known bulk protein prediction.
 - `scripts/run_module_b.py`: module B, bulk unknown protein inference.
 - `scripts/run_module_c.py`: module C, self-supervised PPI refinement.
-- `scripts/run_module_d.py`: module D; choose `--assay scriboseq` for scRibo-seq input or `--assay scrnaseq` for scRNA-seq input. Use `--scriboseq-reproduction-preset seed7_npcs20_k7_all_labeled` for the archived scRibo-seq seed7/k7/npcs20 run.
+- `scripts/run_module_d.py`: module D; choose `--assay scriboseq` for scRibo-seq input or `--assay scrnaseq` for scRNA-seq input. Use `--scriboseq-reproduction-preset seed7_npcs20_k7_all_labeled` for the archived scRibo-seq seed7/k7/npcs20 run, or `--scrnaseq-reproduction-preset phase3_c10_svec_test_scatter` for archived scRNA-seq C10/SVEC phase3 scatter plots.
 - `scripts/run_recipe.py`: combined multi-module runner.
 
 Data construction entry points:

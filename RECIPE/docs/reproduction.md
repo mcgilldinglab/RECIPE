@@ -241,6 +241,32 @@ python scripts/run_module_d.py \
 
 For the scRNA-seq option, set `SCRNASEQ_BUNDLE_DIR`, `SCRNASEQ_PPI_PATH`, `NANOSPINS_TRUTH_CSV`, and `NANOSPINS_MAPPING_XLSX` to the corresponding local inputs before running. The PPI path may be a numeric CSV or SciPy sparse NPZ matrix.
 
+To reproduce the archived Module D scRNA-seq phase3 C10/SVEC plots, use the
+phase3 scatter preset with the archived phase23 output root. The following
+command recreates `svec_best_on_svec_test.pdf` and
+`svec_model_on_c10_test.pdf`; omit `--scrnaseq-reproduction-scenarios` to
+recreate all four C10/SVEC scatter plots.
+
+```bash
+python scripts/run_module_d.py \
+  --assay scrnaseq \
+  --scrnaseq-reproduction-preset phase3_c10_svec_test_scatter \
+  --scrnaseq-phase23-root "${SCRNASEQ_PHASE23_ROOT}" \
+  --scrnaseq-bundle-dir "${SCRNASEQ_BUNDLE_DIR}" \
+  --nanospins-truth-csv "${NANOSPINS_TRUTH_CSV}" \
+  --nanospins-mapping-xlsx "${NANOSPINS_MAPPING_XLSX}" \
+  --scrnaseq-reproduction-scenarios svec_best_on_svec_test,svec_model_on_c10_test \
+  --device auto \
+  --output-dir "${OUTPUT_ROOT}/module_d_scrnaseq_phase3_c10_svec_scatter"
+```
+
+This preset selects the best C10 and SVEC phase3 summaries by held-out
+`test_metrics.r2` unless `--scrnaseq-c10-summary` or
+`--scrnaseq-svec-summary` is provided. It expects the archived phase3 summaries,
+phase3 checkpoints, phase3 target tables, and phase2 hidden-cache metadata to be
+present under `${SCRNASEQ_PHASE23_ROOT}`. Scenarios that use a condition as the
+source model also require that condition's `phase2_hidden_all.npy` hidden cache.
+
 ## One-Command Pipeline
 
 To run the mouse bulk/PPI tasks together with the human single-cell transfer task:

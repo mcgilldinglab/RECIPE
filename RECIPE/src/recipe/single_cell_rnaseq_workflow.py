@@ -14,18 +14,30 @@ RNASEQ_SCRIPT_DIR = PACKAGE_ROOT / "scripts" / "rnaseq"
 PHASE0_SCRIPT = RNASEQ_SCRIPT_DIR / "train_phase0_ensmusp_pseudobulk_raw_bulkprot.py"
 PHASE12_SCRIPT = RNASEQ_SCRIPT_DIR / "train_phase12_ensmusp_scRNA_bulkprot.py"
 PHASE3_SCRIPT = RNASEQ_SCRIPT_DIR / "train_phase3_ensmusp_nanospins_matched.py"
+PHASE3_C10_SVEC_SCATTER_SCRIPT = RNASEQ_SCRIPT_DIR / "plot_phase3_c10_svec_test_scatter.py"
 
 BULK_MODULE_STEP = "Bulk Module"
 RNASEQ_PSEUDOBULK_FINETUNING_STEP = "Phase 12: RNA-seq Pseudo-Bulk/Cell-Graph Finetuning"
 SINGLE_CELL_PROTEIN_FINETUNING_STEP = "Phase 3: nanoSPINS Single-Cell Protein Finetuning"
+PHASE3_C10_SVEC_SCATTER_STEP = "Phase 3: C10/SVEC Scatter Reproduction"
 
 
 def _load_script_module(script_path: Path) -> ModuleType:
-    spec = importlib.util.spec_from_file_location(f"recipe_wrapped_{script_path.stem}", script_path)
+    module_name = f"recipe_wrapped_{script_path.stem}"
+    spec = importlib.util.spec_from_file_location(module_name, script_path)
     if spec is None or spec.loader is None:
         raise ImportError(f"Cannot load workflow script: {script_path}")
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    previous_module = sys.modules.get(module_name)
+    sys.modules[module_name] = module
+    try:
+        spec.loader.exec_module(module)
+    except Exception:
+        if previous_module is None:
+            sys.modules.pop(module_name, None)
+        else:
+            sys.modules[module_name] = previous_module
+        raise
     return module
 
 
@@ -62,6 +74,10 @@ def run_phase12(script_args: Sequence[str] | None = None) -> None:
 
 def run_phase3(script_args: Sequence[str] | None = None) -> None:
     _run_script_main(PHASE3_SCRIPT, script_args)
+
+
+def run_phase3_c10_svec_scatter(script_args: Sequence[str] | None = None) -> None:
+    _run_script_main(PHASE3_C10_SVEC_SCATTER_SCRIPT, script_args)
 
 
 def run_scrnaseq_workflow(
@@ -133,6 +149,16 @@ def build_parser() -> argparse.ArgumentParser:
         help=f"Args forwarded to {SINGLE_CELL_PROTEIN_FINETUNING_STEP}.",
     )
 
+    scatter_parser = subparsers.add_parser(
+        "phase3_c10_svec_scatter",
+        help=f"Run {PHASE3_C10_SVEC_SCATTER_STEP}.",
+    )
+    scatter_parser.add_argument(
+        "script_args",
+        nargs=argparse.REMAINDER,
+        help=f"Args forwarded to {PHASE3_C10_SVEC_SCATTER_STEP}.",
+    )
+
     phase023_parser = subparsers.add_parser(
         "scrnaseq_workflow",
         aliases=["phase023"],
@@ -186,6 +212,9 @@ def main(argv: Sequence[str] | None = None) -> None:
         return
     if args.command == "phase3":
         run_phase3(args.script_args)
+        return
+    if args.command == "phase3_c10_svec_scatter":
+        run_phase3_c10_svec_scatter(args.script_args)
         return
     if args.command in {"scrnaseq_workflow", "phase023"}:
         bulk_module_args = (
