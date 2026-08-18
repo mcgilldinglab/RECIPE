@@ -59,6 +59,20 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--phase1-split-csv", default=None)
     parser.add_argument("--phase2-split-csv", default=None)
     parser.add_argument("--use-bundled-cell-embeddings", action="store_true")
+    parser.add_argument(
+        "--phase2-n-neighbors",
+        "--phase2-k",
+        dest="phase2_n_neighbors",
+        type=int,
+        default=3,
+        help="KNN size for the scRibo-seq Module D phase2 shared cell graph.",
+    )
+    parser.add_argument("--phase2-n-pcs", type=int, default=50)
+    parser.add_argument(
+        "--phase2-selection-metric",
+        choices=("train_loss", "train_r2", "val_loss", "val_r2", "test_loss", "test_r2"),
+        default="val_r2",
+    )
     parser.add_argument("--rnaseq-phase0-args", default="", help="Shell-style args forwarded to scRNA-seq phase0.")
     parser.add_argument("--rnaseq-phase12-args", default="", help="Shell-style args forwarded to scRNA-seq phase12.")
     parser.add_argument("--rnaseq-phase3-args", default="", help="Shell-style args forwarded to scRNA-seq phase3.")
@@ -103,6 +117,9 @@ def main() -> None:
         phase1_split_csv=args.phase1_split_csv,
         phase2_split_csv=args.phase2_split_csv,
         use_bundled_cell_embeddings=args.use_bundled_cell_embeddings,
+        phase2_n_neighbors=args.phase2_n_neighbors,
+        phase2_n_pcs=args.phase2_n_pcs,
+        phase2_selection_metric=args.phase2_selection_metric,
         rnaseq_phase0_args=shlex.split(args.rnaseq_phase0_args),
         rnaseq_phase12_args=shlex.split(args.rnaseq_phase12_args),
         rnaseq_phase3_args=shlex.split(args.rnaseq_phase3_args),

@@ -48,6 +48,9 @@ def run_recipe_pipeline(
     phase1_split_csv: str | Path | None = None,
     phase2_split_csv: str | Path | None = None,
     use_bundled_cell_embeddings: bool = False,
+    phase2_n_neighbors: int = 3,
+    phase2_n_pcs: int = 50,
+    phase2_selection_metric: str = "val_r2",
     rnaseq_phase0_args: Sequence[str] | None = None,
     rnaseq_phase12_args: Sequence[str] | None = None,
     rnaseq_phase3_args: Sequence[str] | None = None,
@@ -153,6 +156,9 @@ def run_recipe_pipeline(
             phase1_split_csv=phase1_split_csv,
             phase2_split_csv=phase2_split_csv,
             use_bundled_cell_embeddings=use_bundled_cell_embeddings,
+            phase2_n_neighbors=phase2_n_neighbors,
+            phase2_n_pcs=phase2_n_pcs,
+            phase2_selection_metric=phase2_selection_metric,
         )
 
     return summary

@@ -626,6 +626,180 @@ def _predict_all_cell_gene_values(
     return np.nan_to_num(prediction_matrix, nan=0.0, posinf=0.0, neginf=0.0)
 
 
+def _is_loss_metric(metric_name: str) -> bool:
+    return metric_name.endswith("_loss")
+
+
+def _metric_improved(candidate: float, best: float, metric_name: str) -> bool:
+    if not np.isfinite(candidate):
+        return False
+    if _is_loss_metric(metric_name):
+        return candidate < best
+    return candidate > best
+
+
+def _phase2_performance_table(
+    prediction_df: pd.DataFrame,
+    metadata_df: pd.DataFrame,
+    ordered_df: pd.DataFrame,
+    label_values: np.ndarray,
+    gene_indices: np.ndarray,
+    split_name: str,
+    rich_fraction_label: str,
+) -> pd.DataFrame:
+    rich_cells = [
+        cell
+        for cell in prediction_df.index.astype(str)
+        if cell in metadata_df.index and metadata_df.loc[cell, "fraction"] == rich_fraction_label
+    ]
+    if not rich_cells:
+        raise ValueError(f"No cells with fraction == {rich_fraction_label!r} were found for phase2 evaluation.")
+
+    gene_ids = ordered_df["ordered_transcript_id"].astype(str).to_numpy()
+    pred_bulk = prediction_df.loc[rich_cells].mean(axis=0)
+    table = pd.DataFrame(
+        {
+            "Gene": gene_ids[gene_indices],
+            "real_expression": label_values[gene_indices],
+            "predicted_expression": pred_bulk.reindex(gene_ids[gene_indices]).to_numpy(dtype=float),
+            "split": split_name,
+        }
+    )
+    return table.replace([np.inf, -np.inf], np.nan).dropna()
+
+
+def _format_p_value(p_value: float) -> str:
+    if p_value < 1e-300:
+        return "P<1e-300"
+    return f"P={p_value:.2e}"
+
+
+def _plot_phase2_performance(df: pd.DataFrame, outdir: Path, stem: str) -> dict[str, float]:
+    import matplotlib as mpl
+
+    mpl.use("Agg", force=True)
+    mpl.rcParams["pdf.fonttype"] = 42
+    mpl.rcParams["ps.fonttype"] = 42
+    mpl.rcParams["text.usetex"] = False
+
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    from matplotlib.gridspec import GridSpec
+    from scipy.stats import pearsonr
+
+    x = df["real_expression"].to_numpy(dtype=float)
+    y = df["predicted_expression"].to_numpy(dtype=float)
+    corr, p_value = pearsonr(x, y)
+
+    fig = plt.figure(figsize=(6, 6))
+    gs = GridSpec(4, 4, figure=fig)
+    ax_scatter = fig.add_subplot(gs[1:4, 0:3])
+    ax_histx = fig.add_subplot(gs[0, 0:3], sharex=ax_scatter)
+    ax_histy = fig.add_subplot(gs[1:4, 3], sharey=ax_scatter)
+
+    ax_scatter.scatter(x, y, alpha=0.65, s=70, color="#CBB9CF", edgecolors="none")
+    min_val = float(min(x.min(), y.min(), 0.0))
+    max_val = float(max(x.max(), y.max()))
+    ax_scatter.plot([min_val, max_val], [min_val, max_val], ls="-", color="black", linewidth=2.2)
+    sns.regplot(
+        x=x,
+        y=y,
+        scatter=False,
+        color="black",
+        ax=ax_scatter,
+        line_kws={"linestyle": "--", "linewidth": 2.6},
+    )
+
+    ax_scatter.set_xlim(min_val - 0.05, max_val + 0.1)
+    ax_scatter.set_ylim(min_val - 0.05, max_val + 0.1)
+    ax_scatter.set_xlabel("Real protein expression", fontsize=14)
+    ax_scatter.set_ylabel("Predicted protein expression", fontsize=14)
+    ax_scatter.text(0.05, 0.90, f"Correlation: {corr:.4f}", transform=ax_scatter.transAxes, fontsize=18)
+    ax_scatter.text(0.05, 0.83, _format_p_value(float(p_value)), transform=ax_scatter.transAxes, fontsize=16, style="italic")
+
+    ax_histx.hist(x, bins=35, color="#C1CFBE", alpha=0.85, edgecolor="#B9C7B5", linewidth=0.5)
+    ax_histy.hist(y, bins=35, orientation="horizontal", color="#BFD2DE", alpha=0.85, edgecolor="#AFC5D3", linewidth=0.5)
+    ax_histy.yaxis.set_visible(False)
+    ax_histx.set_ylabel("")
+    ax_histx.xaxis.set_visible(False)
+    ax_histy.set_xlabel("")
+
+    for ax in (ax_scatter, ax_histx, ax_histy):
+        ax.grid(False)
+        for spine in ax.spines.values():
+            spine.set_linewidth(2.2)
+            spine.set_color("black")
+
+    ax_scatter.tick_params(labelsize=12, width=2, pad=2)
+    ax_histx.tick_params(labelsize=12, width=2, pad=2)
+    ax_histy.tick_params(labelsize=12, width=2, pad=2)
+
+    fig.tight_layout()
+    pdf_path = outdir / f"{stem}.pdf"
+    png_path = outdir / f"{stem}.png"
+    fig.savefig(pdf_path, format="pdf", bbox_inches="tight")
+    fig.savefig(png_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+    return {
+        "plot": stem,
+        "n": int(len(df)),
+        "pearson_r": float(corr),
+        "pearson_p": float(p_value),
+        "pdf": str(pdf_path),
+        "png": str(png_path),
+    }
+
+
+def _write_phase2_performance_outputs(
+    prediction_df: pd.DataFrame,
+    metadata_df: pd.DataFrame,
+    ordered_df: pd.DataFrame,
+    label_values: np.ndarray,
+    test_ids: np.ndarray,
+    output_dir: Path,
+    prefix: str,
+    rich_fraction_label: str,
+) -> dict[str, Any]:
+    valid_gene_ids = np.where(np.isfinite(label_values) & (~np.isclose(label_values, 0.0)))[0]
+    all_df = _phase2_performance_table(
+        prediction_df=prediction_df,
+        metadata_df=metadata_df,
+        ordered_df=ordered_df,
+        label_values=label_values,
+        gene_indices=valid_gene_ids,
+        split_name="all_labeled",
+        rich_fraction_label=rich_fraction_label,
+    )
+    test_df = _phase2_performance_table(
+        prediction_df=prediction_df,
+        metadata_df=metadata_df,
+        ordered_df=ordered_df,
+        label_values=label_values,
+        gene_indices=test_ids,
+        split_name="test_only",
+        rich_fraction_label=rich_fraction_label,
+    )
+
+    all_csv = output_dir / f"{prefix}_all_labeled_predictions_vs_real.csv"
+    test_csv = output_dir / f"{prefix}_test_predictions_vs_real.csv"
+    summary_csv = output_dir / f"{prefix}_phase2_performance_summary.csv"
+    all_df.to_csv(all_csv, index=False)
+    test_df.to_csv(test_csv, index=False)
+
+    summary_rows = [
+        _plot_phase2_performance(all_df, output_dir, f"{prefix}_all_labeled_performance"),
+        _plot_phase2_performance(test_df, output_dir, f"{prefix}_test_performance"),
+    ]
+    pd.DataFrame(summary_rows).to_csv(summary_csv, index=False)
+    return {
+        "all_labeled_predictions": str(all_csv),
+        "test_predictions": str(test_csv),
+        "summary": str(summary_csv),
+        "plots": summary_rows,
+    }
+
+
 def run_single_cell_phase0(
     output_dir: str | Path,
     seed: int = 12,
@@ -1087,11 +1261,18 @@ def run_single_cell_phase2(
     patience: int = 50,
     n_neighbors: int = 3,
     n_pcs: int = 50,
+    selection_metric: str = "val_r2",
     rich_fraction_label: str = "Rich",
     config: SingleCellTransferConfig | None = None,
     split_csv: str | Path | None = None,
     use_bundled_cell_embeddings: bool = False,
 ) -> dict[str, Any]:
+    allowed_selection_metrics = {"train_loss", "train_r2", "val_loss", "val_r2", "test_loss", "test_r2"}
+    if selection_metric not in allowed_selection_metrics:
+        raise ValueError(
+            f"selection_metric must be one of {sorted(allowed_selection_metrics)}; got {selection_metric!r}."
+        )
+
     config = config or SINGLE_CELL_TRANSFER_CONFIG
     set_seed(seed)
     device = resolve_device(device_name)
@@ -1193,7 +1374,7 @@ def run_single_cell_phase2(
         print("[Phase2] training shared global cell graph")
         optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
         best_state = deepcopy(model.state_dict())
-        best_val_r2 = float("-inf")
+        best_score = float("inf") if _is_loss_metric(selection_metric) else float("-inf")
         patience_counter = 0
 
         for epoch in range(1, max_epochs + 1):
@@ -1217,18 +1398,20 @@ def run_single_cell_phase2(
                     "test_r2": test_r2,
                 }
             )
+            epoch_metrics = history[-1]
             if epoch == 1 or epoch % 10 == 0:
                 print(
                     f"[Phase2] Epoch {epoch:03d} | Train Loss: {train_loss:.3f}, Train R²: {train_r2:.3f} | "
                     f"Val Loss: {val_loss:.3f}, Val R²: {val_r2:.3f} | "
                     f"Test Loss: {test_loss:.3f}, Test R²: {test_r2:.3f}"
                 )
-            if val_r2 > best_val_r2:
+            score = float(epoch_metrics[selection_metric])
+            if _metric_improved(score, best_score, selection_metric):
                 best_state = deepcopy(model.state_dict())
                 best_epoch = epoch
-                best_val_r2 = val_r2
+                best_score = score
                 patience_counter = 0
-                print(f"[Phase2] New best model at epoch {epoch}: val_r2={val_r2:.3f}")
+                print(f"[Phase2] New best model at epoch {epoch}: {selection_metric}={score:.3f}")
             else:
                 patience_counter += 1
                 if patience_counter >= patience:
@@ -1260,6 +1443,17 @@ def run_single_cell_phase2(
     )
     prediction_csv = output_dir / "phase2_predicted_cell_matrix.csv"
     prediction_df.to_csv(prediction_csv)
+    performance_prefix = f"seed{seed}_npcs{n_pcs}_k{n_neighbors}"
+    performance_outputs = _write_phase2_performance_outputs(
+        prediction_df=prediction_df,
+        metadata_df=metadata_df,
+        ordered_df=ordered_df,
+        label_values=label_values,
+        test_ids=test_ids,
+        output_dir=output_dir,
+        prefix=performance_prefix,
+        rich_fraction_label=rich_fraction_label,
+    )
 
     metadata_output = metadata_df.copy()
     metadata_output["predicted_mean"] = predicted_matrix.mean(axis=1)
@@ -1281,7 +1475,7 @@ def run_single_cell_phase2(
             "val": int(len(val_ids)),
             "test": int(len(test_ids)),
         },
-        "selection_metric": "val_r2",
+        "selection_metric": selection_metric,
         "train_metrics": {"loss": train_loss, "r2": train_r2},
         "val_metrics": {"loss": val_loss, "r2": val_r2},
         "test_metrics": {"loss": test_loss, "r2": test_r2},
@@ -1304,6 +1498,7 @@ def run_single_cell_phase2(
             "bundled_cell_outputs_npy": str(config.bundled_cell_outputs_npy),
             "use_bundled_cell_embeddings": bool(use_bundled_cell_embeddings),
             "split_csv": str(Path(split_csv).expanduser().resolve()) if split_csv else None,
+            "selection_metric": selection_metric,
         },
         "outputs": {
             "model": str(checkpoint),
@@ -1313,6 +1508,7 @@ def run_single_cell_phase2(
             "cell_predictions": str(prediction_csv),
             "predicted_cell_matrix": str(prediction_csv),
             "cell_metadata": str(metadata_csv),
+            "performance": performance_outputs,
         },
     }
     if history:
@@ -1349,6 +1545,9 @@ def run_single_cell_transfer(
     phase1_split_csv: str | Path | None = None,
     phase2_split_csv: str | Path | None = None,
     use_bundled_cell_embeddings: bool = False,
+    phase2_n_neighbors: int = 3,
+    phase2_n_pcs: int = 50,
+    phase2_selection_metric: str = "val_r2",
 ) -> dict[str, Any]:
     config = with_single_cell_input_paths(
         SINGLE_CELL_TRANSFER_CONFIG,
@@ -1425,6 +1624,9 @@ def run_single_cell_transfer(
             config=config,
             split_csv=phase2_split_csv,
             use_bundled_cell_embeddings=use_bundled_cell_embeddings,
+            n_neighbors=phase2_n_neighbors,
+            n_pcs=phase2_n_pcs,
+            selection_metric=phase2_selection_metric,
         )
 
     summary = {
@@ -1448,6 +1650,9 @@ def run_single_cell_transfer(
             "phase0_split_csv": str(Path(phase0_split_csv).expanduser().resolve()) if phase0_split_csv else None,
             "phase1_split_csv": str(Path(phase1_split_csv).expanduser().resolve()) if phase1_split_csv else None,
             "phase2_split_csv": str(Path(phase2_split_csv).expanduser().resolve()) if phase2_split_csv else None,
+            "phase2_n_neighbors": int(phase2_n_neighbors),
+            "phase2_n_pcs": int(phase2_n_pcs),
+            "phase2_selection_metric": phase2_selection_metric,
         },
         "phase0": phase0_summary,
         "phase1": phase1_summary,

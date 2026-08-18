@@ -201,6 +201,32 @@ python scripts/run_module_d.py \
   --output-dir "${OUTPUT_ROOT}/module_d_single_cell"
 ```
 
+To reproduce the archived scRibo-seq phase2 result named `seed7_npcs20_k7_all_labeled`,
+use the packaged preset. This uses the same settings as the original
+`codex_runs/shared_global_phase2_runner.py` run: seed 7, 20 expression PCs, KNN k=7,
+and best-checkpoint selection by `test_r2`.
+
+```bash
+python scripts/run_module_d.py \
+  --assay scriboseq \
+  --scriboseq-reproduction-preset seed7_npcs20_k7_all_labeled \
+  --data-root "${DATA_ROOT}" \
+  --model-root "${MODEL_ROOT}" \
+  --output-dir "${OUTPUT_ROOT}/module_d_seed7_npcs20_k7"
+```
+
+Expected key outputs:
+
+- `${OUTPUT_ROOT}/module_d_seed7_npcs20_k7/phase2/phase2_summary.json`
+- `${OUTPUT_ROOT}/module_d_seed7_npcs20_k7/phase2/phase2_predicted_cell_matrix.csv`
+- `${OUTPUT_ROOT}/module_d_seed7_npcs20_k7/phase2/seed7_npcs20_k7_all_labeled_predictions_vs_real.csv`
+- `${OUTPUT_ROOT}/module_d_seed7_npcs20_k7/phase2/seed7_npcs20_k7_all_labeled_performance.pdf`
+
+To retrain the phase2 checkpoint instead of loading the archived one, add
+`--train-phase2`. Exact retraining also requires the archived
+`${MODEL_ROOT}/single_cell/seed7_phase1_pseudobulk_model.pth` checkpoint because
+phase2 starts from phase1-derived cell embeddings.
+
 ```bash
 python scripts/run_module_d.py \
   --assay scrnaseq \

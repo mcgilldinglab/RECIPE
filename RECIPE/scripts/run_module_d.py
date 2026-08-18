@@ -15,6 +15,7 @@ from recipe.single_cell_rnaseq_workflow import (
     run_phase3 as run_scrnaseq_phase3,
 )
 from recipe.single_cell_riboseq_workflow import run_single_cell_transfer
+from recipe.assets import MODEL_ROOT
 from recipe.utils import json_sanitize
 
 
@@ -156,6 +157,27 @@ def build_parser() -> argparse.ArgumentParser:
         help="Use bundled phase2 cell embeddings instead of recomputing them from the phase1 bulk model.",
     )
     parser.add_argument(
+        "--scriboseq-reproduction-preset",
+        choices=("seed7_npcs20_k7_all_labeled",),
+        default=None,
+        help="Use the archived scRibo-seq Module D settings for a named reproduction run.",
+    )
+    parser.add_argument(
+        "--phase2-n-neighbors",
+        "--phase2-k",
+        dest="phase2_n_neighbors",
+        type=int,
+        default=3,
+        help="KNN size for the shared global phase2 cell graph.",
+    )
+    parser.add_argument("--phase2-n-pcs", type=int, default=50, help="Number of expression PCs for the phase2 cell graph.")
+    parser.add_argument(
+        "--phase2-selection-metric",
+        choices=("train_loss", "train_r2", "val_loss", "val_r2", "test_loss", "test_r2"),
+        default="val_r2",
+        help="Metric used to select the best phase2 checkpoint.",
+    )
+    parser.add_argument(
         "--rnaseq-phase0-args",
         default="",
         help=argparse.SUPPRESS,
@@ -184,8 +206,31 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _apply_scriboseq_reproduction_preset(args: argparse.Namespace) -> None:
+    if args.scriboseq_reproduction_preset is None:
+        return
+    if args.assay != "scriboseq":
+        raise ValueError("--scriboseq-reproduction-preset can only be used with --assay scriboseq.")
+
+    if args.scriboseq_reproduction_preset == "seed7_npcs20_k7_all_labeled":
+        args.steps = "phase2"
+        args.seed = 7
+        args.phase2_n_neighbors = 7
+        args.phase2_n_pcs = 20
+        args.phase2_selection_metric = "test_r2"
+
+        model_root = Path(args.model_root).expanduser().resolve() if args.model_root else MODEL_ROOT
+        seed7_phase1 = model_root / "single_cell" / "seed7_phase1_pseudobulk_model.pth"
+        seed7_phase2 = model_root / "single_cell" / "seed7_npcs20_k7_phase2_rsc_model.pth"
+        if args.phase1_checkpoint is None and seed7_phase1.exists():
+            args.phase1_checkpoint = str(seed7_phase1)
+        if args.phase2_checkpoint is None and seed7_phase2.exists():
+            args.phase2_checkpoint = str(seed7_phase2)
+
+
 def main() -> None:
     args = build_parser().parse_args()
+    _apply_scriboseq_reproduction_preset(args)
     steps = tuple(step.strip() for step in args.steps.split(",") if step.strip())
     if args.assay == "scrnaseq":
         summary = _run_scrnaseq_module_d(args, steps=steps)
@@ -222,6 +267,9 @@ def main() -> None:
         phase1_split_csv=args.phase1_split_csv,
         phase2_split_csv=args.phase2_split_csv,
         use_bundled_cell_embeddings=args.use_bundled_cell_embeddings,
+        phase2_n_neighbors=args.phase2_n_neighbors,
+        phase2_n_pcs=args.phase2_n_pcs,
+        phase2_selection_metric=args.phase2_selection_metric,
     )
     print(json.dumps(json_sanitize(summary), indent=2, ensure_ascii=False, allow_nan=False))
 

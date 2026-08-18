@@ -35,3 +35,32 @@ def test_scrnaseq_entry_connects_all_internal_stages(tmp_path, monkeypatch):
     assert summary["status"] == "completed"
     assert str(tmp_path / "output" / "phase0" / "best_model.pth") in calls[1][1]
     assert str(tmp_path / "output" / "phase2_hidden_cache") in calls[2][1]
+
+
+def test_scriboseq_seed7_preset_sets_phase2_reproduction_args(tmp_path):
+    model_root = tmp_path / "models"
+    single_cell_model_dir = model_root / "single_cell"
+    single_cell_model_dir.mkdir(parents=True)
+    phase1_checkpoint = single_cell_model_dir / "seed7_phase1_pseudobulk_model.pth"
+    phase2_checkpoint = single_cell_model_dir / "seed7_npcs20_k7_phase2_rsc_model.pth"
+    phase1_checkpoint.write_bytes(b"phase1")
+    phase2_checkpoint.write_bytes(b"phase2")
+
+    args = MODULE.build_parser().parse_args(
+        [
+            "--assay", "scriboseq",
+            "--scriboseq-reproduction-preset", "seed7_npcs20_k7_all_labeled",
+            "--model-root", str(model_root),
+            "--output-dir", str(tmp_path / "output"),
+        ]
+    )
+
+    MODULE._apply_scriboseq_reproduction_preset(args)
+
+    assert args.steps == "phase2"
+    assert args.seed == 7
+    assert args.phase2_n_neighbors == 7
+    assert args.phase2_n_pcs == 20
+    assert args.phase2_selection_metric == "test_r2"
+    assert args.phase1_checkpoint == str(phase1_checkpoint)
+    assert args.phase2_checkpoint == str(phase2_checkpoint)
